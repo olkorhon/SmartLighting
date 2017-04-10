@@ -1,0 +1,8 @@
+# First, create a copy of this file and remove the .TEMPLATE name extension
+# Then replace placeholders with your own credentials and save
+# DO NOT DELETE
+DBNAME = "PLACEHOLDER"
+PASSW = "PLACEHOLDER"
+USER = "postgres"
+HOST = "localhost"
+PORT = 5432
