@@ -1,8 +1,11 @@
 # First, create a copy of this file and remove the .TEMPLATE name extension
 # Then replace placeholders with your own credentials and save
 # DO NOT DELETE
-DBNAME = "PLACEHOLDER"
-PASSW = "PLACEHOLDER"
-USER = "postgres"
-HOST = "localhost"
-PORT = 5432
+
+DB_CONFIG = {
+    "USER": "postgres",
+    "PASSW": "YOUR_PASSWORD_HERE",
+    "HOST": "localhost",
+    "PORT": 5432,
+    "DBNAME": "DB_NAME_HERE"
+}
