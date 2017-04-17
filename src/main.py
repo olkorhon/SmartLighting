@@ -6,6 +6,7 @@ import numpy as np
 from dbconfig import DB_CONFIG
 from db_api import LightSenseDatabase
 
+from bokeh_api import makeHeatmap
 
 class Node(object):
 
@@ -28,11 +29,15 @@ def main():
             node_ids.add(row.node_id)
             nodes[row.node_id] = Node(row.location)
 
-    for node_id in node_ids:
-        temperature_readings = db.get_node_temperatures_by_node_id(node_id)
-        nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
-        print("\n" + str(node_id))
-        print(nodes[node_id].temp_readings.tail())
+    makeHeatmap(nodes)
+    
+    #for node_id in node_ids:
+    #    temperature_readings = db.get_node_temperatures_by_node_id(node_id)
+    #    nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
+    #    print("\n" + str(node_id))
+    #    print(nodes[node_id].temp_readings.tail())
+
+
 
 
 if __name__ == "__main__":
