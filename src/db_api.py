@@ -51,11 +51,54 @@ class LightSenseDatabase(object):
         .filter(Measurement.node_id == Location.id) \
         .filter(Location.location.isnot(None))
 
+    '''
+        Return all events for a single node of certain type.
+        Returns a list of dicts.
+        Keys: 
+            Timestamp(datetime)
+            Measurement(string)
+            Value(float)
+    '''
+    def _get_node_events_of_type(self, node_id, measurement_type_id):
+        return [{   "Timestamp": u.timestamp.event_timestamp, 
+                    "Measurement": u.measurement.measurement_type.description,
+                    "Value": u.value} for u in self.session.query(Event) \
+        .join(Measurement).join(Location) \
+        .filter(Event.measurement_id == Measurement.id) \
+        .filter(Measurement.node_id == Location.id) \
+        .filter(Location.id == node_id) \
+        .filter(Measurement.measurement_type_id == measurement_type_id)]
+
+    '''
+        Return all temperature events for a single node.
+    '''
+    def get_node_temperatures(self, node_id):
+        return self._get_node_events_of_type(node_id, 4)
+
+    '''
+        Return all humidity events for a single node.
+    '''
+    def get_node_humidities(self, node_id):
+        return self._get_node_events_of_type(node_id, 5)
+
+    '''
+        Return all cycle count events for a single node.
+    '''
+    def get_node_cycle_counts(self, node_id):
+        return self._get_node_events_of_type(node_id, 6)
+
+    '''
+        Return all voltage events for a single node.
+    '''
+    def get_node_voltages(self, node_id):
+        return self._get_node_events_of_type(node_id, 7)
+
 def main():
     db = LightSenseDatabase(DB_CONFIG)
-    records = db.get_events()
-    for record in records:
-        print("%s @ %s" % (record.id, record.timestamp.event_timestamp))
+    print(db.get_node_temperatures(347))
+    print(db.get_node_humidities(347))
+    print(db.get_node_cycle_counts(347))
+    print(db.get_node_voltages(347))
 
 if __name__ == "__main__":
     main()
