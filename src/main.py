@@ -19,6 +19,24 @@ class Node(object):
         self.voltage_reading = None
         self.all_readings = pd.DataFrame(data, index=['Timestamp'], columns=["Temperature", "Humidity", "Cycle count", "Voltage"])
 
+    def get_temperatures_by_time_window(self, start_time, end_time):
+        return self.temp_readings.ix[start_time:end_time]
+    
+    def get_measurement_count_by_time_window(self, start_time, end_time):
+        return self.temp_readings.ix[start_time:end_time].shape[0]
+        
+    def get_measurements_count_by_day(self):
+        return self.temp_readings.groupby(pd.TimeGrouper(freq='D')).size()
+        
+    def get_measurements_count_by_hour(self):
+        return self.temp_readings.groupby(pd.TimeGrouper(freq='H')).size()
+
+    def get_measurements_count_by_15_min(self):
+        return self.temp_readings.groupby(pd.TimeGrouper(freq='15Min')).size()
+        
+    def get_measurements_count_by_minute(self):
+        return self.temp_readings.groupby(pd.TimeGrouper(freq='Min')).size()
+
 
 def main():
     db = LightSenseDatabase(DB_CONFIG)
@@ -38,7 +56,27 @@ def main():
     #    print(nodes[node_id].temp_readings.tail())
 
 
+    # testing new shit
+    testLocation = {'x': 1337, 'y': 1337}
+    newTestNode = Node(testLocation)
+    
+    temperature_readings = db.get_node_temperatures_by_node_id(250)
+    newTestNode.temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
 
-
+    
+    print(newTestNode.temp_readings)
+    
+    print(newTestNode.get_temperatures_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
+    
+    print(newTestNode.get_measurement_count_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
+    
+    print(newTestNode.get_measurements_count_by_day())
+    
+    print(newTestNode.get_measurements_count_by_hour())
+    
+    print(newTestNode.get_measurements_count_by_15_min())
+    
+    print(newTestNode.get_measurements_count_by_minute())
+    
 if __name__ == "__main__":
     main()
