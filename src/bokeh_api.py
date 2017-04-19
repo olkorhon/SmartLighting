@@ -1,10 +1,13 @@
 from bokeh.plotting import figure, output_file, ColumnDataSource, show
 from bokeh.models import HoverTool
 from bokeh.charts import HeatMap
+from bokeh.palettes import magma
 
 import numpy as np
 
 def makeHeatmap(nodes):
+    print "Data received"
+
     output_file('heatmap.html')
 
     # Format node positions to plottable format
@@ -16,42 +19,53 @@ def makeHeatmap(nodes):
         x_coords.append(nodes[node].pos_x)
         y_coords.append(206 - nodes[node].pos_y)
 
+    # Extracting source info
+    print "Extracting node info"
     source = ColumnDataSource(data=dict(
         x=x_coords,
         y=y_coords,
         node=node_ids))
 
-    # Load events
-    events = []
-    for node in nodes:
-        n_events = nodes[node].all_readings['20160201':'20160230']
-        for event in n_events:
-            print event
-
     # Define plot
+    print "Initializing plot"
     p = figure(
         tools=['xpan', createHoverTool()],
-        width=1638, height=626,
-        x_range=(0,618), y_range=(0,206))
+        width=1647, height=326,
+        x_range=(0,1527), y_range=(0,206))
 
     # Draw image on background
-    p.image_url(url=['map.png'], x=0, y=207, w=1527, h=207)
+    p.image_url(url=['map.png'], x=0, y=206, w=1527, h=207)
 
     # Draw circles where nodes are
     p.circle('x', 'y', source=source, size=25, color='red')
 
     # Define sizes
-    brush_size = 21
-    base_size = (150, 20)
+    brush_size = 151
+    base_size = (600, 80)
 
     # Initialize maps
-    base, base_view = createHeatmapBase(150, 20)
-    brush, brush_view = createBrushMesh(21)
+    base = _createHeatmapBase(base_size)
+    brush = _createBrushMesh(brush_size)
 
-    applyBrush(base_view, brush_view, base_size, brush_size, (0, 0))
-    applyBrush(base_view, brush_view, base_size, brush_size, (0, 19))
+    # Load events
+    print "Loading node events"
+    for node in nodes:
+        count = nodes[node].get_measurement_count_by_time_window('2016-01-09 00:00:00','2016-01-10 23:59:59')
+        if count > 0:
+            for i in range(count):
+                offset = ( int(nodes[node].pos_x / 1527.0 * 600.0),
+                           int((207 - nodes[node].pos_y) / 207.0 * 80.0))
+                _applyBrush(base, brush, base_size, brush_size, offset)
+
+    # Create palette
+    palette = magma(256)
+    _hexPaletteToTuplePalette(palette)
+
+    # Reformat data
+    _reformatHeatmap(base, base_size, palette)
 
     # Stuffzies
+    print "Drawing heatmap"
     p.image_rgba(image=[base], x=0, y=0, dw=1527, dh=207)
 
     # Set borders
@@ -59,10 +73,12 @@ def makeHeatmap(nodes):
 
     show(p)
 
-def applyBrush(base, brush, base_size, brush_size, offset):
+def _applyBrush(base, brush, base_size, brush_size, offset):
+    # Shift offset by half brush so it points to the center
     brush_half = (brush_size - 1) / 2
     offset = (offset[0] - brush_half, offset[1] - brush_half)
-    
+
+    # Append brush to image
     for x in range(brush_size):
         for y in range(brush_size):
             # Skip coordinates that are outside the map
@@ -71,44 +87,82 @@ def applyBrush(base, brush, base_size, brush_size, offset):
                 continue
 
             # Append color
-            base[y + offset[1], x + offset[0], 0] += brush[y, x, 0]
-            base[y + offset[1], x + offset[0], 1] += brush[y, x, 1]
-            base[y + offset[1], x + offset[0], 2] += brush[y, x, 2]
+            if (base[y + offset[1], x + offset[0]] + brush[y, x] >= 1024):
+                base[y + offset[1], x + offset[0]] = 255
+            else:
+                base[y + offset[1], x + offset[0]] += brush[y, x]
 
-def createHeatmapBase(size_w, size_h):
-    heatmap = np.empty((size_h, size_w), dtype=np.uint32)
-    heatmap_view = heatmap.view(dtype=np.uint8).reshape((size_h, size_w, 4))
+def _createHeatmapBase(size):
+    heatmap = np.empty((size[1], size[0]), dtype=np.float32)
 
-    for x in range(size_w):
-        for y in range(size_h):
-            heatmap_view[y, x, 0] = 0
-            heatmap_view[y, x, 1] = 0
-            heatmap_view[y, x, 2] = 0
-            heatmap_view[y, x, 3] = 192
+    for y in range(size[1]):
+        for x in range(size[0]):    
+            heatmap[y, x] = 0.0
 
-    return (heatmap, heatmap_view)
+    return (heatmap)
 
-def createBrushMesh(size):
-    brush = np.empty((size, size), dtype=np.uint32)
-    brush_view = brush.view(dtype=np.uint8).reshape((size, size, 4))
+# Creates a template for events
+def _createBrushMesh(size):
+    brush = np.empty((size, size), dtype=np.float32)
 
     half = (size - 1) / 2.0
     half2 = half**2
-    for x in range(size):
-        for y in range(size):
-            # Calculate distance
+    for y in range(size):
+        for x in range(size):
+            # Calculate distance to center, normalized between 0 and 1
             dist = 1.0 - (((x - half)**2 + (y - half)**2)) / half2
+            
+            # Parse distance, drop negative ones
             if dist < 0:
                 dist = 0
+            else:
+                dist = dist**3 # Unlinear falloff, sharper edges
 
             # Set brush
-            brush_view[x, y, 0] = dist * 64
-            brush_view[x, y, 1] = dist * 64
-            brush_view[x, y, 2] = dist * 64
-            brush_view[x, y, 3] = 0
+            brush[x, y] = dist * 6.0
 
-    return (brush, brush_view)
-            
+    return (brush)
+
+# Change heatmap data from float32 to uint8
+def _reformatHeatmap(array, size, palette):
+    # Get highest value in the heatmap
+    max_value = _getMaxValue(array, size)
+    # NOTE! All heatmap values will be scaled to uint8, palette should be the same size
+    scaling_value = 255.0 / max_value  
+
+    # Reformat heatmap data to an image format
+    view = array.view(dtype=np.uint8).reshape((size[1], size[0], 4))
+    for y in range(size[1]):
+        for x in range(size[0]):
+            color = palette[int(array[y, x] * scaling_value)]
+            view[y, x, 0] = color[0]
+            view[y, x, 1] = color[1]
+            view[y, x, 2] = color[2]
+            view[y, x, 3] = 223
+
+# Get max value from a heatmap
+def _getMaxValue(array, size):
+    currently_highest = 0
+    for y in range(size[1]):
+        for x in range(size[0]):
+            if array[y, x] > currently_highest:
+                currently_highest = array[y, x]
+    return currently_highest
+
+# Convert hex palette to tuple palette
+def _hexPaletteToTuplePalette(palette):
+    for i in range(len(palette)):
+        palette[i] = _hexToDec(palette[i])
+
+# Convert hexadecimal to RGB tuple
+def _hexToDec(hex):
+    hex_split = hex.strip('#')
+    red   = ''.join(hex_split[0:2])
+    green = ''.join(hex_split[2:4])
+    blue  = ''.join(hex_split[4:6])
+    return (int(red, 16), int(green, 16), int(blue,16))
+
+# Returns a hovertool for nodes  
 def createHoverTool():
     return HoverTool(tooltips=[
         ('node', '@node'),
