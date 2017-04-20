@@ -6,7 +6,8 @@ import numpy as np
 from dbconfig import DB_CONFIG
 from db_api import LightSenseDatabase
 
-from bokeh_api import makeHeatmap
+from bokeh_heatmap import makeHeatmap
+from bokeh_network import makeNetwork
 
 class Node(object):
 
@@ -54,6 +55,8 @@ def main():
             node_ids.add(row.node_id)
             nodes[row.node_id] = Node(row.location)
 
+    makeNetwork(nodes)
+
     # Fetch data to nodes
     for node_id in node_ids:
         print ("Processing node:", str(node_id))
@@ -77,6 +80,7 @@ def main():
     #print(newTestNode.get_measurements_count_by_minute())
 
     makeHeatmap(nodes)
+    
     
 if __name__ == "__main__":
     main()
