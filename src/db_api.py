@@ -1,9 +1,11 @@
 from __future__ import print_function
-from sqlalchemy import create_engine, and_
+from sqlalchemy import create_engine, cast, Date
 from sqlalchemy import Table, Column, String, Integer, MetaData
 from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import sessionmaker
 from sys import exit
+from datetime import datetime
 
 from dbconfig import DB_CONFIG
 import models
@@ -43,13 +45,28 @@ class LightSenseDatabase(object):
 
     '''
         Return all events (Value) of nodes with positions.
+        Optional timeframe inputs.
         See Event model for accessable data.
     '''
-    def get_events(self):
-        return self.session.query(Event).join(Measurement).join(Location) \
+    def get_events(self, start_time=None, end_time=None):
+        query = self.session.query(Event).join(Measurement).join(Location).join(Timestamp) \
         .filter(Event.measurement_id == Measurement.id) \
         .filter(Measurement.node_id == Location.id) \
         .filter(Location.location.isnot(None))
+
+        if start_time is not None:
+            query = query.filter(cast(Timestamp.event_timestamp, Date) >= start_time)
+
+        if end_time is not None:
+            query = query.filter(cast(Timestamp.event_timestamp, Date) <= end_time)
+
+        return query.all()
+
+    def get_events_as_dict(self, start_time=None, end_time=None):
+        return [{   "Timestamp": u.timestamp.event_timestamp,
+                    "Measurement": u.measurement.measurement_type.description,
+                    "Value": u.value,
+                    "NodeId": u.measurement.node.node_id} for u in self.get_events(start_time, end_time)]
 
     def _get_node_events_of_type(self, node_id, measurement_type_id):
         """
@@ -135,11 +152,8 @@ class LightSenseDatabase(object):
 
 def main():
     db = LightSenseDatabase(DB_CONFIG)
-    temp_list = db.get_node_temperatures_by_node_id(253)
-    print(len(temp_list))
-    #print(db.get_node_humidities(347))
-    #print(db.get_node_cycle_counts(347))
-    #print(db.get_node_voltages(347))
+    r = db.get_events(datetime(2015, 11, 1), datetime(2015, 11, 2))
+    print(len(r))
 
 if __name__ == "__main__":
     main()
