@@ -1,5 +1,7 @@
 from __future__ import print_function
 
+from datetime import datetime
+
 import pandas as pd
 import numpy as np
 
@@ -58,11 +60,16 @@ def main():
     makeNetwork(nodes)
 
     # Fetch data to nodes
-    for node_id in node_ids:
+    for node_id in [250, 257]:
         print ("Processing node:", str(node_id))
-        temperature_readings = db.get_node_temperatures_by_node_id(node_id)
+        temperature_readings = db.get_node_temperatures_by_node_id(node_id, datetime(2016, 2, 15), datetime(2016, 2, 16))
         nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
         #print (nodes[node_id].temp_readings.tail())
+
+    source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    sink_node_df = nodes[257].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
+    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
 
     # This is my jam brah
     #testLocation = {'x': 1337, 'y': 1337}
@@ -79,8 +86,27 @@ def main():
     #print(newTestNode.get_measurements_count_by_15_min()) 
     #print(newTestNode.get_measurements_count_by_minute())
 
-    makeHeatmap(nodes)
+    #makeHeatmap(nodes)
     
+def calc_traffic_between_nodes(source_node_df, sink_node_df, offset):
+    # offset = excpected time in seconds that it takes to walk between nodes
     
+    traffic_ctr = 0
+    event_timestamps = []
+    for timestamp in list(source_node_df.index):
+        print(timestamp)
+        # get timestamp of event
+        # add 'timeframe' seconds to timestamp
+        target = timestamp + pd.DateOffset(seconds=offset)
+        # call sink_node.get_measurement_count_by_time_window()
+        count = sink_node_df.ix[timestamp:target].shape[0]
+        if (count > 1):
+            event_timestamps.append(timestamp)
+    df = pd.DataFrame(event_timestamps, index=event_timestamps)
+    grouped_by_hour = df.groupby(pd.TimeGrouper(freq='H')).size()
+    print(grouped_by_hour)
+    print("\n")
+    return traffic_ctr
+
 if __name__ == "__main__":
     main()
