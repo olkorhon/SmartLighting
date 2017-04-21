@@ -1,12 +1,12 @@
 from bokeh.plotting import figure, output_file, ColumnDataSource, show
-from bokeh.palettes import magma
+from bokeh.palettes import linear_palette, Plasma256
 from bokeh.models import HoverTool
 
 import numpy as np
 
 def makeNetwork(nodes):
     print "Data received"
-    output_file('heatmap.html')
+    output_file('arrow.html')
 
     # Create figure with nodes 
     p = createBackground(nodes)
@@ -14,15 +14,21 @@ def makeNetwork(nodes):
     # Load example data
     data = generateExampleData(nodes)
 
+    palette = linear_palette(Plasma256, 12)
+    
+
     # Convert lines to arrows
+    alphas = []
+    colors = []
+    sizes = [10, 11, 12, 13, 14, 15, 16, 17]
+    sizes.extend(sizes)
     for i in range(len(data['x'])):
-        if i < 5: 
-            transformToAnArrow(data, i, 5)
-        else:
-            transformToAnArrow(data, i, 10)
+        transformToAnArrow(data, i, sizes[i])
+        alphas.append(0.9)
+        colors.append(palette[sizes[i] - 10])
    
     p.patches(data['x'], data['y'], line_width=0,
-              color=data['colors'])#, alpha=[0.8, 0.8])
+              color=colors, alpha=alphas)
 
     show(p)
 
@@ -100,7 +106,6 @@ def generateExampleData(nodes):
      # Make example lines
     x = []
     y = []
-    colors = []
     last = None
     for node in example_path:
         if last != None:
@@ -112,7 +117,6 @@ def generateExampleData(nodes):
             points_y.append(207 - nodes[node].pos_y)
             x.append(points_x)
             y.append(points_y)
-            colors.append('red')
         last = node
 
     # Reverse list
@@ -127,13 +131,12 @@ def generateExampleData(nodes):
             points_y.append(207 - nodes[node].pos_y)
             x.append(points_x)
             y.append(points_y)
-            colors.append('blue')
         last = node
 
     example_path = [259, 254, 256, 251, 252, 258, 253, 250, 257]
     reverse_path = example_path[::-1]
 
-    return {'x':x, 'y':y, 'colors':colors}
+    return {'x':x, 'y':y}
 
 # Returns a hovertool for nodes  
 def _createHoverTool():

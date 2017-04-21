@@ -66,6 +66,8 @@ def main():
         nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
         #print (nodes[node_id].temp_readings.tail())
 
+    makeHeatmap(nodes)
+
     source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
     sink_node_df = nodes[257].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
     print("From node 250 to node 257")
