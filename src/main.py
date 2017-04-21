@@ -60,15 +60,38 @@ def main():
     makeNetwork(nodes)
 
     # Fetch data to nodes
-    for node_id in [250, 257]:
+    for node_id in [250, 257, 259, 254, 253, 251, 252]:
         print ("Processing node:", str(node_id))
-        temperature_readings = db.get_node_temperatures_by_node_id(node_id, datetime(2016, 2, 15), datetime(2016, 2, 16))
+        temperature_readings = db.get_node_temperatures_by_node_id(node_id)
         nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
         #print (nodes[node_id].temp_readings.tail())
 
     source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
     sink_node_df = nodes[257].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    print("From node 250 to node 257")
     calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
+    print("From node 257 to node 250")
+    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
+
+    source_node_df = nodes[259].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    sink_node_df = nodes[254].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    print("From node 259 to node 254")
+    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
+    print("From node 254 to node 259")
+    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
+
+    source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    sink_node_df = nodes[253].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    print("From node 250 to node 253")
+    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
+    print("From node 253 to node 250")
+    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
+
+    source_node_df = nodes[251].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
+    sink_node_df = nodes[252].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
+    print("From node 251 to node 252")
+    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
+    print("From node 252 to node 251")
     calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
 
     # This is my jam brah
