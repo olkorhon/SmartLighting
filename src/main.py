@@ -60,16 +60,18 @@ def main():
     makeNetwork(nodes)
 
     # Fetch data to nodes
-    for node_id in [250, 257]:
+    for node_id in nodes:
         print ("Processing node:", str(node_id))
-        temperature_readings = db.get_node_temperatures_by_node_id(node_id, datetime(2016, 2, 15), datetime(2016, 2, 16))
+        temperature_readings = db.get_node_temperatures_by_node_id(node_id)#, datetime(2016, 2, 15), datetime(2016, 2, 16))
         nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
         #print (nodes[node_id].temp_readings.tail())
 
-    source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    sink_node_df = nodes[257].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
-    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
+    makeHeatmap(nodes)
+
+    #source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    #sink_node_df = nodes[257].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
+    #calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
+    #calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
 
     # This is my jam brah
     #testLocation = {'x': 1337, 'y': 1337}
