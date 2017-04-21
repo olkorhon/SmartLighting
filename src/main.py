@@ -60,7 +60,7 @@ def main():
     makeNetwork(nodes)
 
     # Fetch data to nodes
-    for node_id in [250, 257, 259, 254, 253, 251, 252]:
+    for node_id in [250, 257, 259, 254, 253, 252]:
         print ("Processing node:", str(node_id))
         temperature_readings = db.get_node_temperatures_by_node_id(node_id)
         nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
@@ -87,12 +87,12 @@ def main():
     print("From node 253 to node 250")
     calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
 
-    source_node_df = nodes[251].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
-    sink_node_df = nodes[252].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
-    print("From node 251 to node 252")
-    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
-    print("From node 252 to node 251")
-    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
+    #source_node_df = nodes[251].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
+    #sink_node_df = nodes[252].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
+    #print("From node 251 to node 252")
+    #calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
+    #print("From node 252 to node 251")
+    #calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
 
     # This is my jam brah
     #testLocation = {'x': 1337, 'y': 1337}
