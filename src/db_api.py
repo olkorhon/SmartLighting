@@ -47,7 +47,7 @@ class LightSenseDatabase(object):
     '''
         Return all nodes without position
     '''
-    def get_nodes_without_locations(self):
+    def get_nodes_without_locations(self):                                                  # For next day's Heikki: you did this
         return self.session.query(Location).filter(Location.location.is_(None))
 
     '''
