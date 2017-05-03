@@ -8,6 +8,7 @@ from sys import exit
 from datetime import datetime
 
 from dbconfig import DB_CONFIG
+import constants
 import models
 
 from models.location import Location
@@ -82,16 +83,16 @@ class LightSenseDatabase(object):
         .filter(Measurement.measurement_type_id == measurement_type_id)]
 
     def get_node_temperatures(self, node_id):
-        return self._get_node_events_of_type(node_id, 4)
+        return self._get_node_events_of_type(node_id, constants.TEMPERATURE)
 
     def get_node_humidities(self, node_id):
-        return self._get_node_events_of_type(node_id, 5)
+        return self._get_node_events_of_type(node_id, constants.HUMIDITY)
 
     def get_node_cycle_counts(self, node_id):
-        return self._get_node_events_of_type(node_id, 6)
+        return self._get_node_events_of_type(node_id, constants.CYCLE_COUNT)
 
     def get_node_voltages(self, node_id):
-        return self._get_node_events_of_type(node_id, 7)
+        return self._get_node_events_of_type(node_id, constants.VOLTAGE)
 
     def _get_node_events_of_type_by_node_id(self, node_id, measurement_type_id):
         """
