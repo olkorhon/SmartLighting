@@ -57,6 +57,14 @@ def main():
 
     #makeNetwork(nodes)
     Bokeh.visualization.create(nodes)
+    
+    st = datetime(2016, 1, 1)
+    et = datetime(2016, 1, 7)
+    
+    test = db.get_node_events_of_type_by_node_id_by_time_window(250, 4, st, et)
+    testdf = pd.DataFrame.from_records(test, index=['Timestamp'], exclude=['Measurement'])
+    print(testdf)
+    
     '''  
     # Fetch data to nodes
 
