@@ -43,6 +43,13 @@ class LightSenseDatabase(object):
     def get_nodes(self):
         return self.session.query(Location).filter(Location.location.isnot(None)).order_by(Location.id)
 
+
+    '''
+        Return all nodes without position
+    '''
+    def get_nodes_without_locations(self):
+        return self.session.query(Location).filter(Location.location.is_(None))
+
     '''
         Return all events (Value) of nodes with positions.
         Optional timeframe inputs.
@@ -114,6 +121,27 @@ class LightSenseDatabase(object):
                     .filter(Location.node_id == node_id) \
                     .filter(Measurement.measurement_type_id == measurement_type_id)]
 
+    def _get_node_events_of_type_by_node_id_test(self, node_id, measurement_type_id):
+        """
+        Return all events of certain type for a single node.
+
+        :param node_id: int
+        :param measurement_type_id: int
+        :return: list of dicts
+        Keys:
+            Timestamp(datetime)
+            Measurement(string)
+            Value(float)
+        """
+        return [{"Timestamp": u.timestamp.event_timestamp,
+                 "Measurement": u.measurement.measurement_type.description,
+                 "Value": u.value} for u in self.session.query(Event) \
+                    .join(Measurement).join(Location) \
+                    .filter(Event.measurement_id == Measurement.id) \
+                    .filter(Measurement.node_id == Location.id) \
+                    .filter(Location.node_id == node_id) \
+                    .filter(Measurement.measurement_type_id == measurement_type_id)]
+
     def get_node_temperatures_by_node_id(self, node_id):
         """
         Return all temperature events for a single node.
@@ -139,7 +167,7 @@ class LightSenseDatabase(object):
         :param node_id: int 
         :return: list of all cycle count events for a single node.
         """
-        return self._get_node_events_of_type_by_node_id(node_id, 6)
+        return self._get_node_events_of_type_by_node_id_test(node_id, 6)
 
     def get_node_voltages_by_node_id(self, node_id):
         """
@@ -149,6 +177,31 @@ class LightSenseDatabase(object):
         :return: list of all voltage events for a single node.
         """
         return self._get_node_events_of_type_by_node_id(node_id, 7)
+
+    def get_node_events_of_type_by_node_id_by_time_window(self, node_id, measurement_type_id, start_time=None, end_time=None):
+        """
+        Return all events of certain type for a single node.
+
+        :param node_id: int
+        :param measurement_type_id: int
+        :return: list of dicts
+        Keys:
+            Timestamp(datetime)
+            Measurement(string)
+            Value(float)
+        """
+        return [{"Timestamp": u.timestamp.event_timestamp,
+                 "Measurement": u.measurement.measurement_type.description,
+                 "Value": u.value} for u in self.session.query(Event) \
+                    .join(Measurement).join(Location).join(Timestamp) \
+                    .filter(Event.measurement_id == Measurement.id) \
+                    .filter(Measurement.node_id == Location.id) \
+                    .filter(Location.node_id == node_id) \
+                    .filter(Measurement.measurement_type_id == measurement_type_id) \
+                    .filter(Timestamp.event_timestamp > start_time) \
+                    .filter(Timestamp.event_timestamp < end_time)]
+
+
 
 def main():
     db = LightSenseDatabase(DB_CONFIG)
