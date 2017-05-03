@@ -10,8 +10,11 @@ from db_api import LightSenseDatabase
 
 import Bokeh.visualization
 
+
 class Node(object):
-    def __init__(self, location, data=None):
+
+    def __init__(self, node_id, location=None, data=None):
+        self.node_id = node_id
         self.pos_x = location["x"]
         self.pos_y = location["y"]
         self.temp_readings = None
@@ -39,24 +42,64 @@ class Node(object):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='Min')).size()
 
 
+class NodeContainer(object):
+
+    def __init__(self, db_conn):
+        self.db = db_conn
+        self.id_node_map = {}
+
+    def put_temp_events_to_all_nodes(self):
+        for node_id in self.id_node_map.keys():
+            print("Processing node:", str(node_id))
+            tempe_readings = self.db.get_node_temperatures_by_node_id(node_id)
+            self.id_node_map[node_id].temp_readings = pd.DataFrame.from_records(tempe_readings, index=['Timestamp'])
+
+    def calc_traffic_between_nodes(self, source_node_df, sink_node_df, offset):
+        # offset = excpected time in seconds that it takes to walk between nodes
+
+        traffic_ctr = 0
+        event_timestamps = []
+        for timestamp in list(source_node_df.index):
+            print(timestamp)
+            # get timestamp of event
+            # add 'timeframe' seconds to timestamp
+            target = timestamp + pd.DateOffset(seconds=offset)
+            # call sink_node.get_measurement_count_by_time_window()
+            count = sink_node_df.ix[timestamp:target].shape[0]
+            if (count > 1):
+                event_timestamps.append(timestamp)
+        df = pd.DataFrame(event_timestamps, index=event_timestamps)
+        grouped_by_hour = df.groupby(pd.TimeGrouper(freq='H')).size()
+        print(grouped_by_hour)
+        print("\n")
+        return traffic_ctr
+
+
 def main():
+
+    # Fix this monstrosity
     try:
         db = LightSenseDatabase(DB_CONFIG)
     except:
         main()
         return
-        
-    nodes = {}
-    node_ids = set()
 
-    # Fetch unique nodes
+    container = NodeContainer(db)
+
+    # Fill NodeContainer with all the unique Nodes
+    node_ids = set()
     for row in db.get_nodes():
         if row.node_id not in node_ids:
             node_ids.add(row.node_id)
-            nodes[row.node_id] = Node(row.location)
+            container.id_node_map[row.node_id] = Node(row.node_id, row.location)
+
+    container.put_temp_events_to_all_nodes()
+
+    print(container.id_node_map[250].temp_readings)
 
     #makeNetwork(nodes)
-    Bokeh.visualization.create(nodes)
+
+    Bokeh.visualization.create(container.id_node_map)
     
     st = datetime(2016, 1, 1)
     et = datetime(2016, 1, 7)
@@ -64,7 +107,7 @@ def main():
     test = db.get_node_events_of_type_by_node_id_by_time_window(250, 4, st, et)
     testdf = pd.DataFrame.from_records(test, index=['Timestamp'], exclude=['Measurement'])
     print(testdf)
-    
+
     '''  
     # Fetch data to nodes
 
@@ -119,26 +162,6 @@ def main():
     #print(newTestNode.get_measurements_count_by_hour())
     #print(newTestNode.get_measurements_count_by_15_min()) 
     #print(newTestNode.get_measurements_count_by_minute())
-    
-def calc_traffic_between_nodes(source_node_df, sink_node_df, offset):
-    # offset = excpected time in seconds that it takes to walk between nodes
-    
-    traffic_ctr = 0
-    event_timestamps = []
-    for timestamp in list(source_node_df.index):
-        print(timestamp)
-        # get timestamp of event
-        # add 'timeframe' seconds to timestamp
-        target = timestamp + pd.DateOffset(seconds=offset)
-        # call sink_node.get_measurement_count_by_time_window()
-        count = sink_node_df.ix[timestamp:target].shape[0]
-        if (count > 1):
-            event_timestamps.append(timestamp)
-    df = pd.DataFrame(event_timestamps, index=event_timestamps)
-    grouped_by_hour = df.groupby(pd.TimeGrouper(freq='H')).size()
-    print(grouped_by_hour)
-    print("\n")
-    return traffic_ctr
 
 if __name__ == "__main__":
     main()
