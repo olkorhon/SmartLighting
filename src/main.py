@@ -8,11 +8,9 @@ import numpy as np
 from dbconfig import DB_CONFIG
 from db_api import LightSenseDatabase
 
-from bokeh_heatmap import makeHeatmap
-from bokeh_network import makeNetwork
+import Bokeh.visualization
 
 class Node(object):
-
     def __init__(self, location, data=None):
         self.pos_x = location["x"]
         self.pos_y = location["y"]
@@ -57,13 +55,14 @@ def main():
             node_ids.add(row.node_id)
             nodes[row.node_id] = Node(row.location)
 
-    makeNetwork(nodes)
-
+    #makeNetwork(nodes)
+    Bokeh.visualization.create(nodes)
+    '''  
     # Fetch data to nodes
-    for node_id in [250, 257, 259, 254, 253, 251, 252]:
-        print ("Processing node:", str(node_id))
-        temperature_readings = db.get_node_temperatures_by_node_id(node_id)
-        nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
+    #for node_id in [250, 257, 259, 254, 253, 251, 252, 256, 258]:
+    #    print ("Processing node:", str(node_id))
+    #    temperature_readings = db.get_node_temperatures_by_node_id(node_id)
+    #    nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
         #print (nodes[node_id].temp_readings.tail())
 
     makeHeatmap(nodes)
@@ -102,7 +101,7 @@ def main():
     
     #temperature_readings = db.get_node_temperatures_by_node_id(250)
     #newTestNode.temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
- 
+    '''
     #print(newTestNode.temp_readings)
     #print(newTestNode.get_temperatures_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
     #print(newTestNode.get_measurement_count_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
@@ -110,8 +109,6 @@ def main():
     #print(newTestNode.get_measurements_count_by_hour())
     #print(newTestNode.get_measurements_count_by_15_min()) 
     #print(newTestNode.get_measurements_count_by_minute())
-
-    #makeHeatmap(nodes)
     
 def calc_traffic_between_nodes(source_node_df, sink_node_df, offset):
     # offset = excpected time in seconds that it takes to walk between nodes
