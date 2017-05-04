@@ -27,13 +27,13 @@ class Node(object):
 
     def get_temperatures_by_time_window(self, start_time, end_time):
         return self.temp_readings.ix[start_time:end_time]
-    
+
     def get_measurement_count_by_time_window(self, start_time, end_time):
         return self.temp_readings.ix[start_time:end_time].shape[0]
 
     def get_measurements_grouped_by_day(self):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='D'))
-        
+
     def get_measurements_count_by_day(self):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='D')).size()
 
@@ -45,10 +45,9 @@ class Node(object):
 
     def get_measurements_count_by_15_min(self):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='15Min')).size()
-        
+
     def get_measurements_count_by_minute(self):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='Min')).size()
-
 
 class NodeContainer(object):
 
@@ -65,8 +64,9 @@ class NodeContainer(object):
     def put_voltage_events_to_all_nodes(self, start_time=None, end_time=None):
         for node_id in self.id_node_map.keys():
             voltage_readings = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.VOLTAGE,
-                                                                                       start_time, end_time)
-            self.id_node_map[node_id].voltage_readings = pd.DataFrame.from_records(voltage_readings, index=['Timestamp'])
+                                                                                         start_time, end_time)
+            self.id_node_map[node_id].voltage_readings = pd.DataFrame.from_records(voltage_readings,
+                                                                                   index=['Timestamp'])
 
     def calc_traffic_between_nodes(self, source_node_df, sink_node_df, offset):
         # offset = excpected time in seconds that it takes to walk between nodes
@@ -104,8 +104,13 @@ class NodeContainer(object):
                 hourly_events_per_node_per_day[id] = daily_events
         return hourly_events_per_node_per_day
 
-def main(start_time, end_time):
+class NodeEnergy(object):
 
+    def __init__(self, location, data=None):
+        self.cycle_readings = None
+        self.all_readings = pd.DataFrame(data, index=['Timestamp'], columns=["Cycle count"])
+
+def main(start_time, end_time):
     # Fix this monstrosity
     try:
         db = LightSenseDatabase(DB_CONFIG)
@@ -131,7 +136,18 @@ def main(start_time, end_time):
 
     Bokeh.visualization.create(container.id_node_map, events_hourly)
 
-    '''  
+    '''
+    Fetch unique nodes without locations (for cycle counts)
+    '''
+    nodes_energy = {}
+    node_energy_ids = set()
+    for row in db.get_nodes_without_locations():
+        if row.node_id not in node_energy_ids:
+            node_energy_ids.add(row.node_id)
+            nodes_energy[row.node_id] = NodeEnergy(row.location)
+    # Calculate energy savings for one day
+    print(calculate_energy_savings_for_day(db, "2016-01-25"))
+
     # Fetch data to nodes
 
     #for node_id in [250, 257, 259, 254, 253, 251, 252, 256, 258]:
@@ -174,17 +190,37 @@ def main(start_time, end_time):
     # This is my jam brah
     #testLocation = {'x': 1337, 'y': 1337}
     #newTestNode = Node(testLocation)
-    
+
     #temperature_readings = db.get_node_temperatures_by_node_id(250)
     #newTestNode.temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
-    '''
-    #print(newTestNode.temp_readings)
-    #print(newTestNode.get_temperatures_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
-    #print(newTestNode.get_measurement_count_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
-    #print(newTestNode.get_measurements_count_by_day())
-    #print(newTestNode.get_measurements_count_by_hour())
-    #print(newTestNode.get_measurements_count_by_15_min()) 
-    #print(newTestNode.get_measurements_count_by_minute())
+
+    # print(newTestNode.temp_readings)
+    # print(newTestNode.get_temperatures_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
+    # print(newTestNode.get_measurement_count_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
+    # print(newTestNode.get_measurements_count_by_day())
+    # print(newTestNode.get_measurements_count_by_hour())
+    # print(newTestNode.get_measurements_count_by_15_min())
+    # print(newTestNode.get_measurements_count_by_minute())
+
+
+def calculate_energy_savings_for_day(database, day):
+    energy_savings_dict = {}
+    for node_id in range(1, 36): #nodes 1-35 have cyclecounts
+        #print ("Processing node:", str(node_id))
+        time_morning = "%s 06:00:00" % day
+        time_evening = "%s 18:00:00" % day
+        cycle_readings = database.get_node_events_of_type_by_node_id_by_time_window(node_id, 6, time_morning, time_evening)
+        if cycle_readings == []:
+            energy_savings_dict[node_id] = 100
+        else:
+            cycle_readings_df = pd.DataFrame.from_records(cycle_readings, index=['Timestamp'], exclude=['Measurement'])
+            energy_savings_dict[node_id] = (43200 - (cycle_readings_df.iloc[-1] - cycle_readings_df.iloc[0])) / 432  # in percents
+    energy_savings = pd.DataFrame.from_dict(energy_savings_dict, orient='index')
+    #print(energy_savings)
+    if float(energy_savings.mean() <= 100):
+        return float(energy_savings.mean())
+    else:
+        return 100
 
 if __name__ == "__main__":
     start = datetime(2016, 1, 25)
