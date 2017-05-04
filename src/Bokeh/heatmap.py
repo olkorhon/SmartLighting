@@ -3,14 +3,14 @@ from bokeh.palettes import viridis
 from helpers import *
 from example_data import generateEventsForNode
 
-def drawOnFigure(fig, source, nodes):
+def drawOnFigure(fig, source, heatdata, nodes):
     # Initialize properties
-    BRUSH_SIZE = 25
-    HEATMAP_RESOLUTION = (150, 20)
+    BRUSH_SIZE = 51
+    HEATMAP_RESOLUTION = (300, 40)
 
     # Create palette
     print "Creating palette"
-    palette = viridis(64)
+    palette = viridis(128)
     hexPaletteToTuplePalette(palette)
 
     # Initialize maps
@@ -18,45 +18,50 @@ def drawOnFigure(fig, source, nodes):
     template_base = createArrayOfSize(HEATMAP_RESOLUTION)
     brush = createBrushMesh(BRUSH_SIZE)
 
-    # Add empty image
-    empty_image = np.copy(template_base)
-    reformatHeatmap(empty_image, HEATMAP_RESOLUTION, palette, 0)
-    source.data["image_empty"] = [empty_image]
-
-    # Default image is empty
-    source.data["image"] = source.data['image_empty']
+    image_data = {}
 
     # Populate source with data
     print "Populating image source with instances of template_base"
-    populateImageSource(source, nodes, template_base, brush, BRUSH_SIZE, HEATMAP_RESOLUTION, palette)
+    populateImagesSourceWithData(image_data, nodes, heatdata, template_base, brush, BRUSH_SIZE, HEATMAP_RESOLUTION)
+
+    # Reformat data to image format
+    for key in image_data:
+        reformatHeatmap(image_data[key], HEATMAP_RESOLUTION, palette)
+        image_data[key] = [image_data[key]]
+
+    image_data["image_empty"] = np.copy(template_base)
+    reformatHeatmap(image_data["image_empty"], HEATMAP_RESOLUTION, palette, 0)
+    image_data["image_empty"] = [image_data["image_empty"]]
+
+    # Default image is empty
+    image_data["image"] = image_data['image_empty']
+    source.data = image_data
 
     # Draw the heatmap
     print "Drawing heatmap"
     fig.image_rgba(image="image", x=0, y=0, dw=1527, dh=207, source=source)
 
 
-def populateImageSource(source, nodes, template_base, brush, brush_size, heatmap_resolution, palette):
-    # Load events to source
-    print "Loading node events"
-    for d in range(7):
+def populateImagesSourceWithData(image_data, nodes, data, template_base, brush, brush_size, heatmap_resolution):
+    # Create holders for heatmaps
+    print "Reserving memory for heatmaps"
+    for date in range(25, 32): #TODO No hardcoding!
         for h in range(24):
-            image_path = "image_" + str(h + 1) + str(d + 1)
-            source.data[image_path] = createHeatmap(template_base, nodes, heatmap_resolution, brush, brush_size, palette)
+            image_path = "image_" + str(h + 1) + str(date)
+            image_data[image_path] = np.copy(template_base)
 
-
-def createHeatmap(template_base, nodes, heatmap_resolution, brush, brush_size, palette):
-    heatmap = np.copy(template_base)
-
-    for node in nodes:
-        count = generateEventsForNode()  # nodes[node].get_measurement_count_by_time_window("2016-01-10 16:00:00","2016-01-10 23:59:59")
-        if count > 0:
-            brush_offset = (int(nodes[node].pos_x / 1527.0 * heatmap_resolution[0]),
-                            int((207 - nodes[node].pos_y) / 207.0 * heatmap_resolution[1]))
-            applyBrush(heatmap, brush, heatmap_resolution, brush_size, brush_offset, count)
-
-    # Reformat data
-    reformatHeatmap(heatmap, heatmap_resolution, palette)
-    return [heatmap]
+    # Paint data to heatmaps
+    print "Painting data to heatmaps"
+    for node in data:
+        pos_x = nodes[node].pos_x
+        pos_y = nodes[node].pos_y
+        for date in data[node]:
+            # Elem is a tuple
+            for elem in data[node][date]:
+                image_path = "image_" + str(elem[0]) + str(date.day)
+                brush_offset = (int(pos_x / 1527.0 * heatmap_resolution[0]),
+                                int((207 - pos_y) / 207.0 * heatmap_resolution[1]))
+                applyBrush(image_data[image_path], brush, heatmap_resolution, brush_size, brush_offset, elem[1])
 
 
 # Change heatmap data from float32 to [uint8]
@@ -75,7 +80,8 @@ def reformatHeatmap(array, size, palette, alpha=223):
     view = array.view(dtype=np.uint8).reshape((size[1], size[0], 4))
     for y in range(size[1]):
         for x in range(size[0]):
-            color = palette[int(array[y, x] * scaling_value)]
+            color_index = array[y, x] * scaling_value
+            color = palette[int(color_index)]
             view[y, x, 0] = color[0]
             view[y, x, 1] = color[1]
             view[y, x, 2] = color[2]
@@ -120,7 +126,7 @@ def applyBrush(base, brush, base_size, brush_size, offset, multiplier):
                 continue
 
             # Append color
-            if (base[y + offset[1], x + offset[0]] + brush[y, x] * multiplier >= 1024):
+            if (base[y + offset[1], x + offset[0]] + brush[y, x] * multiplier >= 255):
                 base[y + offset[1], x + offset[0]] = 255
             else:
                 base[y + offset[1], x + offset[0]] += brush[y, x] * multiplier
