@@ -110,7 +110,7 @@ def main(start_time, end_time):
     try:
         db = LightSenseDatabase(DB_CONFIG)
     except:
-        main()
+        main(start_time, end_time)
         return
 
     container = NodeContainer(db)
@@ -129,7 +129,7 @@ def main(start_time, end_time):
     events_hourly = container.get_hourly_events_for_all_nodes_grouped_by_day()
     pp.pprint(events_hourly)
 
-    #Bokeh.visualization.create(container.id_node_map, events_hourly)
+    Bokeh.visualization.create(container.id_node_map, events_hourly)
 
     '''  
     # Fetch data to nodes

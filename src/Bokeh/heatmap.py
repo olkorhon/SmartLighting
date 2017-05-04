@@ -26,11 +26,11 @@ def drawOnFigure(fig, source, heatdata, nodes):
 
     # Reformat data to image format
     for key in image_data:
-        reformatHeatmap(image_data[key], HEATMAP_RESOLUTION, palette)
+        reformatHeatmap(image_data[key], HEATMAP_RESOLUTION, palette, 1024.0)
         image_data[key] = [image_data[key]]
 
     image_data["image_empty"] = np.copy(template_base)
-    reformatHeatmap(image_data["image_empty"], HEATMAP_RESOLUTION, palette, 0)
+    reformatHeatmap(image_data["image_empty"], HEATMAP_RESOLUTION, palette, 1024.0, 0)
     image_data["image_empty"] = [image_data["image_empty"]]
 
     # Default image is empty
@@ -65,9 +65,8 @@ def populateImagesSourceWithData(image_data, nodes, data, template_base, brush, 
 
 
 # Change heatmap data from float32 to [uint8]
-def reformatHeatmap(array, size, palette, alpha=223):
+def reformatHeatmap(array, size, palette, max_value, alpha=223):
     # Get highest value in the heatmap
-    max_value = getMaxValue(array, size)
     palette_size = len(palette)
 
     # NOTE! All heatmap values will be scaled down to palette size
@@ -126,7 +125,7 @@ def applyBrush(base, brush, base_size, brush_size, offset, multiplier):
                 continue
 
             # Append color
-            if (base[y + offset[1], x + offset[0]] + brush[y, x] * multiplier >= 255):
-                base[y + offset[1], x + offset[0]] = 255
+            if (base[y + offset[1], x + offset[0]] + brush[y, x] * multiplier > 1024):
+                base[y + offset[1], x + offset[0]] = 1024
             else:
                 base[y + offset[1], x + offset[0]] += brush[y, x] * multiplier
