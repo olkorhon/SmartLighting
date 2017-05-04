@@ -10,7 +10,7 @@ def create(nodes, heatdata):
     output_file("visuals.html")
 
     # Initialize data sources
-    state_source = ColumnDataSource(data=dict(hour=[10], day=[2], active=[0]))
+    state_source = ColumnDataSource(data=dict(hour=[1], day=[25], active=[0]))
     node_source = ColumnDataSource(data=dict(
         x_shown=[], y_shown=[], id_shown=[],
         x=[], y=[], id=[]))
@@ -38,7 +38,7 @@ def create(nodes, heatdata):
 
     # Create date slider and give it the defined inner function callback
     day_callback = CustomJS(args=dict(source=heat_source, state=state_source), code=updateDay)
-    day_slider = Slider(start=1, end=7, value=1, step=1, title="day", callback=day_callback)
+    day_slider = Slider(start=25, end=31, value=25, step=1, title="day", callback=day_callback)
 
     # Make layout
     layout = column(fig, row(column(hour_slider, day_slider), toggles))

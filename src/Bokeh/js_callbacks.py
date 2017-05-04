@@ -1,6 +1,6 @@
 updateHour = """
-    console.log(state.data.day + ':' + state.data.hour);
     state.data.hour[0] = cb_obj.value;
+    console.log(state.data.day + ':' + state.data.hour);
 
     if (state.data.active.indexOf(1) > -1) {
         var path = 'image_' + cb_obj.value.toString() + state.data.day[0];
@@ -14,8 +14,8 @@ updateHour = """
 """
 
 updateDay = """
-    console.log(state.data.day + ':' + state.data.hour);
     state.data.day[0] = cb_obj.value;
+    console.log(state.data.day + ':' + state.data.hour);
 
     if (state.data.active.indexOf(1) > -1) {
         var path = 'image_' + state.data.hour[0] + cb_obj.value.toString();
