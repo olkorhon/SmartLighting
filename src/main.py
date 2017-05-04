@@ -68,13 +68,16 @@ class NodeContainer(object):
             self.id_node_map[node_id].voltage_readings = pd.DataFrame.from_records(voltage_readings,
                                                                                    index=['Timestamp'])
 
-    def calc_traffic_between_nodes(self, source_node_df, sink_node_df, offset):
+    def calc_traffic_between_nodes(self, source_node, sink_node, offset):
         # offset = excpected time in seconds that it takes to walk between nodes
+
+        source_node_df = source_node.temp_readings
+        sink_node_df = sink_node.temp_readings
 
         traffic_ctr = 0
         event_timestamps = []
         for timestamp in list(source_node_df.index):
-            print(timestamp)
+            # print(timestamp)
             # get timestamp of event
             # add 'timeframe' seconds to timestamp
             target = timestamp + pd.DateOffset(seconds=offset)
@@ -103,6 +106,32 @@ class NodeContainer(object):
                 daily_events[day] = hourly_event_counts
                 hourly_events_per_node_per_day[id] = daily_events
         return hourly_events_per_node_per_day
+
+    def get_traffic_on_neighbour_nodes_at_vtt(self):
+        node_pairs = [[259, 254],
+                      [254, 256],
+                      [254, 251],
+                      [256, 251],
+                      [251, 252],
+                      [252, 258],
+                      [252, 253],
+                      [253, 258],
+                      [253, 250],
+                      [250, 257]
+                      ]
+
+        for pair in node_pairs:
+            source_node = pair[0]
+            sink_node = pair[1]
+
+            print("Traffic from node %d to node %d" % (source_node, sink_node))
+            self.calc_traffic_between_nodes(self.id_node_map[source_node], self.id_node_map[sink_node], 15)
+
+            print("Traffic from node %d to node %d" % (sink_node, source_node))
+            self.calc_traffic_between_nodes(self.id_node_map[sink_node], self.id_node_map[source_node], 15)
+
+
+
 
 class NodeEnergy(object):
 
@@ -157,28 +186,13 @@ def main(start_time, end_time):
 
         #print (nodes[node_id].temp_readings.tail())
 
+
+    # Uncomment next line to unleash true power of calculatin and printing all traffict at vvt builgin on neighbour nodes
+    # container.get_traffic_on_neighbour_nodes_at_vtt()
+
     makeHeatmap(nodes)
 
-    source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    sink_node_df = nodes[257].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    print("From node 250 to node 257")
-    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
-    print("From node 257 to node 250")
-    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
 
-    source_node_df = nodes[259].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    sink_node_df = nodes[254].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    print("From node 259 to node 254")
-    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
-    print("From node 254 to node 259")
-    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
-
-    source_node_df = nodes[250].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    sink_node_df = nodes[253].get_temperatures_by_time_window(datetime(2016, 2, 15), datetime(2016, 2, 16))
-    print("From node 250 to node 253")
-    calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
-    print("From node 253 to node 250")
-    calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
 
     #source_node_df = nodes[251].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
     #sink_node_df = nodes[252].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
