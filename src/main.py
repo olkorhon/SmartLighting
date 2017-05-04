@@ -1,12 +1,14 @@
 from __future__ import print_function
 
-from datetime import datetime
+from datetime import datetime, date
+import pprint
 
 import pandas as pd
 import numpy as np
 
 from dbconfig import DB_CONFIG
 from db_api import LightSenseDatabase
+import constants
 
 import Bokeh.visualization
 
@@ -20,7 +22,7 @@ class Node(object):
         self.temp_readings = None
         self.humidity_readings = None
         self.cycle_readings = None
-        self.voltage_reading = None
+        self.voltage_readings = None
         self.all_readings = pd.DataFrame(data, index=['Timestamp'], columns=["Temperature", "Humidity", "Cycle count", "Voltage"])
 
     def get_temperatures_by_time_window(self, start_time, end_time):
@@ -28,10 +30,16 @@ class Node(object):
     
     def get_measurement_count_by_time_window(self, start_time, end_time):
         return self.temp_readings.ix[start_time:end_time].shape[0]
+
+    def get_measurements_grouped_by_day(self):
+        return self.temp_readings.groupby(pd.TimeGrouper(freq='D'))
         
     def get_measurements_count_by_day(self):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='D')).size()
-        
+
+    def get_measurements_grouped_by_hour(self):
+        return self.temp_readings.groupby(pd.TimeGrouper(freq='H'))
+
     def get_measurements_count_by_hour(self):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='H')).size()
 
@@ -48,11 +56,17 @@ class NodeContainer(object):
         self.db = db_conn
         self.id_node_map = {}
 
-    def put_temp_events_to_all_nodes(self):
+    def put_temp_events_to_all_nodes(self, start_time=None, end_time=None):
         for node_id in self.id_node_map.keys():
-            print("Processing node:", str(node_id))
-            tempe_readings = self.db.get_node_temperatures_by_node_id(node_id)
+            tempe_readings = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.TEMPERATURE,
+                                                                                       start_time, end_time)
             self.id_node_map[node_id].temp_readings = pd.DataFrame.from_records(tempe_readings, index=['Timestamp'])
+
+    def put_voltage_events_to_all_nodes(self, start_time=None, end_time=None):
+        for node_id in self.id_node_map.keys():
+            voltage_readings = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.VOLTAGE,
+                                                                                       start_time, end_time)
+            self.id_node_map[node_id].voltage_readings = pd.DataFrame.from_records(voltage_readings, index=['Timestamp'])
 
     def calc_traffic_between_nodes(self, source_node_df, sink_node_df, offset):
         # offset = excpected time in seconds that it takes to walk between nodes
@@ -74,8 +88,23 @@ class NodeContainer(object):
         print("\n")
         return traffic_ctr
 
+    def get_hourly_events_for_all_nodes_grouped_by_day(self):
+        """
+        :return: dict of node_id : {datetime.date : hourly_events_list}
+        """
+        hourly_events_per_node_per_day = {}
+        for id, node in self.id_node_map.iteritems():
+            grouped = node.get_measurements_grouped_by_day()
+            daily_events = {}
+            for label, day_group in grouped:
+                num_of_events_by_hour = day_group.groupby(pd.TimeGrouper(freq='H')).size()
+                hourly_event_counts = [(key.to_datetime().hour, val) for key, val in num_of_events_by_hour.iteritems()]
+                day = label.to_datetime().date()
+                daily_events[day] = hourly_event_counts
+                hourly_events_per_node_per_day[id] = daily_events
+        return hourly_events_per_node_per_day
 
-def main():
+def main(start_time, end_time):
 
     # Fix this monstrosity
     try:
@@ -93,20 +122,14 @@ def main():
             node_ids.add(row.node_id)
             container.id_node_map[row.node_id] = Node(row.node_id, row.location)
 
-    container.put_temp_events_to_all_nodes()
 
-    print(container.id_node_map[250].temp_readings)
+    container.put_temp_events_to_all_nodes(start_time, end_time)
 
-    #makeNetwork(nodes)
+    pp = pprint.PrettyPrinter(indent=4)
+    events_hourly = container.get_hourly_events_for_all_nodes_grouped_by_day()
+    pp.pprint(events_hourly)
 
-    Bokeh.visualization.create(container.id_node_map)
-    
-    st = datetime(2016, 1, 1)
-    et = datetime(2016, 1, 7)
-    
-    test = db.get_node_events_of_type_by_node_id_by_time_window(250, 4, st, et)
-    testdf = pd.DataFrame.from_records(test, index=['Timestamp'], exclude=['Measurement'])
-    print(testdf)
+    #Bokeh.visualization.create(container.id_node_map, events_hourly)
 
     '''  
     # Fetch data to nodes
@@ -164,4 +187,6 @@ def main():
     #print(newTestNode.get_measurements_count_by_minute())
 
 if __name__ == "__main__":
-    main()
+    start = datetime(2016, 1, 25)
+    end = datetime(2016, 1, 31)
+    main(start, end)
