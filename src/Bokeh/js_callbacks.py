@@ -45,12 +45,12 @@ updateToggles = """
 
     if (cb_obj.active.indexOf(1) > -1) {
         var path = 'image_' + state.data.hour[0] + state.data.day[0];
-        image_source.data.image = image_source.data[path];
-        image_source.trigger('change');
+        heat_source.data.image = heat_source.data[path];
+        heat_source.trigger('change');
     }
     else {
-        image_source.data.image = image_source.data.image_empty;
-        image_source.trigger('change');
+        heat_source.data.image = heat_source.data.image_empty;
+        heat_source.trigger('change');
     }
 
     if (cb_obj.active.indexOf(2) > -1) {
