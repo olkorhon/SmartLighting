@@ -180,6 +180,7 @@ class LightSenseDatabase(object):
                     .filter(Timestamp.event_timestamp < end_time)]
 
 
+
 def main():
     db = LightSenseDatabase(DB_CONFIG)
     r = db.get_events(datetime(2015, 11, 1), datetime(2015, 11, 2))
