@@ -68,7 +68,7 @@ class NodeContainer(object):
             self.id_node_map[node_id].voltage_readings = pd.DataFrame.from_records(voltage_readings,
                                                                                    index=['Timestamp'])
 
-    def calc_traffic_between_nodes(self, source_node, sink_node, offset_lowbound, offset_upbound):
+    def calc_traffic_between_nodes(self, source_node, sink_node, offset_lowbound, offset_upbound, sensor_cooldown):
         # offset_lowbound = excpected shortest time in seconds that it takes to walk between nodes
         # offset_lowbound = excpected longest time in seconds that it takes to walk between nodes
 
@@ -77,13 +77,37 @@ class NodeContainer(object):
 
         traffic_ctr = 0
         event_timestamps = []
+
+        # This decides that how many seconds window are events suppressed when traffic between nodes occurs
+        sensor_cooldown_time = sensor_cooldown
+
+        cooldown_counter = 0
         for timestamp in list(source_node_df.index):
+
+            if cooldown_counter > 0:
+                # Sensor is on cooldown state, skip to next simestramp
+                cooldown_counter = cooldown_counter - 1
+                continue
+
+
             start_time = timestamp + pd.DateOffset(seconds=offset_lowbound)
             end_time = timestamp + pd.DateOffset(seconds=offset_upbound)
 
             count = sink_node_df.ix[start_time:end_time].shape[0]
             if (count > 1):
+                # Movement found, add cooldown to sensor
+
+                # Taking cooldown time window
+                cooldown_window_start = timestamp + pd.DateOffset(seconds=1)
+                cooldown_window_end = timestamp + pd.DateOffset(seconds=sensor_cooldown_time)
+                events_on_cooldown_window = source_node_df.ix[cooldown_window_start:cooldown_window_end].shape[0]
+
+                # Add skip amount of found events
+                cooldown_counter = events_on_cooldown_window
+                # print("Cooldownwindow events %d" % cooldown_counter)
+                # Add movement to list
                 event_timestamps.append(timestamp)
+
         df = pd.DataFrame(event_timestamps, index=event_timestamps)
         grouped_by_hour = df.groupby(pd.TimeGrouper(freq='H')).size()
         print(grouped_by_hour)
@@ -124,10 +148,10 @@ class NodeContainer(object):
             sink_node = pair[1]
 
             print("Traffic from node %d to node %d" % (source_node, sink_node))
-            self.calc_traffic_between_nodes(self.id_node_map[source_node], self.id_node_map[sink_node], 5, 15)
+            self.calc_traffic_between_nodes(self.id_node_map[source_node], self.id_node_map[sink_node], 5, 15, 6)
 
             print("Traffic from node %d to node %d" % (sink_node, source_node))
-            self.calc_traffic_between_nodes(self.id_node_map[sink_node], self.id_node_map[source_node], 5, 15)
+            self.calc_traffic_between_nodes(self.id_node_map[sink_node], self.id_node_map[source_node], 5, 15, 6)
 
 
 
