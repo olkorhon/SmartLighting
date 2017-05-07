@@ -109,10 +109,11 @@ class NodeContainer(object):
                 event_timestamps.append(timestamp)
 
         df = pd.DataFrame(event_timestamps, index=event_timestamps)
-        grouped_by_hour = df.groupby(pd.TimeGrouper(freq='H')).size()
-        print(grouped_by_hour)
-        print("\n")
-        return traffic_ctr
+        # grouped_by_hour = df.groupby(pd.TimeGrouper(freq='H')).size()
+        return df
+        #print(grouped_by_hour)
+        #print("\n")
+        #return traffic_ctr
 
     def get_hourly_events_for_all_nodes_grouped_by_day(self):
         """
@@ -130,6 +131,27 @@ class NodeContainer(object):
                 hourly_events_per_node_per_day[id] = daily_events
         return hourly_events_per_node_per_day
 
+
+    def format_traffic_events(self, traffic_events, source_node, sink_node):
+
+        hourly_events_of_pair_per_day = {}
+
+        traffic_events_by_day = traffic_events.groupby(pd.TimeGrouper(freq='D'))
+        daily_traffic_events = {}
+        for label, day_group in traffic_events_by_day:
+            num_of_traffic_events_by_hour = day_group.groupby(pd.TimeGrouper(freq='H')).size()
+            hourly_traffic_event_counts = [(key.to_datetime().hour, val) for key, val in
+                                           num_of_traffic_events_by_hour.iteritems()]
+            day = label.to_datetime().date()
+            daily_traffic_events[day] = hourly_traffic_event_counts
+
+            hourly_events_of_pair_per_day["from_node_id"] = source_node
+            hourly_events_of_pair_per_day["to_node_id"] = sink_node
+
+            hourly_events_of_pair_per_day["events"] = daily_traffic_events
+
+        return hourly_events_of_pair_per_day
+
     def get_traffic_on_neighbour_nodes_at_vtt(self):
         node_pairs = [[259, 254],
                       [254, 256],
@@ -143,16 +165,24 @@ class NodeContainer(object):
                       [250, 257]
                       ]
 
+
+        pair_container = {}
+
+        counter = 0
+
         for pair in node_pairs:
             source_node = pair[0]
             sink_node = pair[1]
 
-            print("Traffic from node %d to node %d" % (source_node, sink_node))
-            self.calc_traffic_between_nodes(self.id_node_map[source_node], self.id_node_map[sink_node], 5, 15, 6)
+            traffic_events = self.calc_traffic_between_nodes(self.id_node_map[source_node], self.id_node_map[sink_node], 5, 15, 6)
+            pair_container[counter] = self.format_traffic_events(traffic_events, source_node, sink_node)
+            counter = counter + 1
 
-            print("Traffic from node %d to node %d" % (sink_node, source_node))
-            self.calc_traffic_between_nodes(self.id_node_map[sink_node], self.id_node_map[source_node], 5, 15, 6)
+            traffic_events = self.calc_traffic_between_nodes(self.id_node_map[sink_node], self.id_node_map[source_node], 5, 15, 6)
+            pair_container[counter] = self.format_traffic_events(traffic_events, sink_node, source_node)
+            counter = counter + 1
 
+        return pair_container
 
 
 
@@ -211,7 +241,10 @@ def main(start_time, end_time):
 
 
     # Uncomment next line to unleash true power of calculatin and printing all traffict at vvt builgin on neighbour nodes
-    container.get_traffic_on_neighbour_nodes_at_vtt()
+
+
+    traffic_events_hourly = container.get_traffic_on_neighbour_nodes_at_vtt()
+    pp.pprint(traffic_events_hourly)
 
     makeHeatmap(nodes)
 
