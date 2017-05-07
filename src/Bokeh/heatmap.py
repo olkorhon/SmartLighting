@@ -1,36 +1,31 @@
-from bokeh.palettes import viridis
+from bokeh.palettes import Inferno256
 
 from helpers import *
 from example_data import generateEventsForNode
 
-def drawOnFigure(fig, source, heatdata, nodes):
+def drawOnFigure(fig, source, heatdata, nodes, palette=hexPaletteToTuplePalette(Inferno256)):
     # Initialize properties
-    BRUSH_SIZE = 51
-    HEATMAP_RESOLUTION = (300, 40)
-
-    # Create palette
-    print "Creating palette"
-    palette = viridis(128)
-    hexPaletteToTuplePalette(palette)
+    BRUSH_SIZE = 25
+    HEATMAP_RESOLUTION = (150, 20)
 
     # Initialize maps
-    print "Creating template for heatmap"
+    print "    Creating template for heatmap"
     template_base = createArrayOfSize(HEATMAP_RESOLUTION)
     brush = createBrushMesh(BRUSH_SIZE)
 
     image_data = {}
 
     # Populate source with data
-    print "Populating image source with instances of template_base"
+    print "    Populating image source with instances of template_base"
     populateImagesSourceWithData(image_data, nodes, heatdata, template_base, brush, BRUSH_SIZE, HEATMAP_RESOLUTION)
 
     # Reformat data to image format
     for key in image_data:
-        reformatHeatmap(image_data[key], HEATMAP_RESOLUTION, palette, 1024.0)
+        reformatHeatmap(image_data[key], HEATMAP_RESOLUTION, palette, 256.0)
         image_data[key] = [image_data[key]]
 
     image_data["image_empty"] = np.copy(template_base)
-    reformatHeatmap(image_data["image_empty"], HEATMAP_RESOLUTION, palette, 1024.0, 0)
+    reformatHeatmap(image_data["image_empty"], HEATMAP_RESOLUTION, palette, 256.0, 0)
     image_data["image_empty"] = [image_data["image_empty"]]
 
     # Default image is empty
@@ -38,20 +33,19 @@ def drawOnFigure(fig, source, heatdata, nodes):
     source.data = image_data
 
     # Draw the heatmap
-    print "Drawing heatmap"
     fig.image_rgba(image="image", x=0, y=0, dw=1527, dh=207, source=source)
 
 
 def populateImagesSourceWithData(image_data, nodes, data, template_base, brush, brush_size, heatmap_resolution):
     # Create holders for heatmaps
-    print "Reserving memory for heatmaps"
+    print "    Reserving memory for heatmaps"
     for date in range(25, 32): #TODO No hardcoding!
         for h in range(24):
             image_path = "image_" + str(h + 1) + str(date)
             image_data[image_path] = np.copy(template_base)
 
     # Paint data to heatmaps
-    print "Painting data to heatmaps"
+    print "    Painting data to heatmaps"
     for node in data:
         pos_x = nodes[node].pos_x
         pos_y = nodes[node].pos_y
@@ -84,7 +78,7 @@ def reformatHeatmap(array, size, palette, max_value, alpha=223):
             view[y, x, 0] = color[0]
             view[y, x, 1] = color[1]
             view[y, x, 2] = color[2]
-            view[y, x, 3] = alpha
+            view[y, x, 3] = color[3]
 
 
 # Creates a template for events
@@ -102,10 +96,10 @@ def createBrushMesh(size):
             if dist < 0:
                 dist = 0
             else:
-                dist = dist ** 3  # Unlinear falloff, sharper edges
+                dist = dist # Unlinear falloff, sharper edges
 
             # Set brush
-            brush[x, y] = dist * 6.0
+            brush[x, y] = dist
 
     return (brush)
 
@@ -125,7 +119,7 @@ def applyBrush(base, brush, base_size, brush_size, offset, multiplier):
                 continue
 
             # Append color
-            if (base[y + offset[1], x + offset[0]] + brush[y, x] * multiplier > 1024):
-                base[y + offset[1], x + offset[0]] = 1024
+            if (base[y + offset[1], x + offset[0]] + brush[y, x] * multiplier > 256):
+                base[y + offset[1], x + offset[0]] = 256
             else:
                 base[y + offset[1], x + offset[0]] += brush[y, x] * multiplier

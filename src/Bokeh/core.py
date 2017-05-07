@@ -5,9 +5,12 @@ from bokeh.plotting import figure
 def createCoreFigure(bg_path):
     fig = figure(
         tools=[],#"xpan", _createHoverTool()],
-        width=1527 + 60, height=206 + 60,
+        width=1527 + 40, height=206 + 40,
         x_range=(0, 1527), y_range=(0, 206),
-        min_border=30)
+        min_border=20, toolbar_location=None)
+    fig.axis.visible = False
+    fig.xgrid.grid_line_color = None
+    fig.ygrid.grid_line_color = None
 
     # Draw image on background
     fig.image_url(url=[bg_path], x=0, y=206, w=1527, h=207)
@@ -20,23 +23,28 @@ def drawOnFigure(fig, source, nodes):
 
 
 def populateNodeSource(source, nodes, y_invert_factor=-1):
+    data = dict(
+        x_shown=[], y_shown=[], id_shown=[],
+        x=[], y=[], id=[])
+
     # Format node positions to plottable format
     if y_invert_factor >= 0:
         for node_id in nodes:
-            source.data["id"].append(node_id)
-            source.data["x"].append(nodes[node_id].pos_x)
-            source.data["y"].append(y_invert_factor - nodes[node_id].pos_y)
+            data["id"].append(node_id)
+            data["x"].append(nodes[node_id].pos_x)
+            data["y"].append(y_invert_factor - nodes[node_id].pos_y)
     else:
         for node_id in nodes:
-            source.data["id"].append(node_id)
-            source.data["x"].append(nodes[node_id].pos_x)
-            source.data["y"].append(nodes[node_id].pos_y)
+            data["id"].append(node_id)
+            data["x"].append(nodes[node_id].pos_x)
+            data["y"].append(nodes[node_id].pos_y)
 
     # Nodes are visible by default
-    source.data["x_shown"] = source.data["x"]
-    source.data["y_shown"] = source.data["y"]
-    source.data["id_shown"] = source.data["id"]
+    data["x_shown"] = data["x"]
+    data["y_shown"] = data["y"]
+    data["id_shown"] = data["id"]
 
+    source.data = data
 
 def drawNodes(fig, source, draw_labels):
     # Draw circles to indicate nodes

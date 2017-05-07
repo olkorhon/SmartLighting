@@ -35,4 +35,4 @@ def _hexToDec(hex):
     red   = ''.join(hex_split[0:2])
     green = ''.join(hex_split[2:4])
     blue  = ''.join(hex_split[4:6])
-    return (int(red, 16), int(green, 16), int(blue,16))
+    return [int(red, 16), int(green, 16), int(blue,16), 255]
