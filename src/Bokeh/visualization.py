@@ -57,7 +57,7 @@ def create(nodes, heatdata):
 
     # Create date slider and give it the defined inner function callback
     day_callback = CustomJS(args=dict(heat_source=heat_source, energy_source=energy_source, arrow_source=arrow_source, state=state_source), code=updateDay)
-    day_slider = Slider(start=25, end=31, value=25, step=1, title="Date 2017 : 2 ", callback=day_callback, value_labels='hide')
+    day_slider = Slider(start=25, end=31, value=25, step=1, title="Date 2017 : 2 ", callback=day_callback)
     #date_picker = DateRangeSlider(
     #  step={},
     #  bounds=(Tuple(Date(datetime.date(year=2017, month=9, day=25)), Date(datetime.date(year=2017, month=9, day=30)))),

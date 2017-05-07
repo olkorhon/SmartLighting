@@ -27,6 +27,8 @@ def setData(fig, source, xs, ys):
     # Construct data
     data = {xs:times, ys:range(24)}
 
+    #data['div_x'] = [0, 0]
+    #data['div_y'] = [-20, 100]
 
     # Set currently visible data
     #source.data[xs+'_shown'] = source.data[xs]
@@ -48,6 +50,12 @@ def setData(fig, source, xs, ys):
         source=source,
         color="navy")
 
+    #fig.line(
+    #    x='div_x',
+    #    y='div_y',
+    #    source=source,
+    #    color="red",
+    #    line_width=2)
 
 if __name__ == '__main__':
     show(createEnergySaveGraph(300, 240))
