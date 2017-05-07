@@ -49,6 +49,7 @@ class Node(object):
     def get_measurements_count_by_minute(self):
         return self.temp_readings.groupby(pd.TimeGrouper(freq='Min')).size()
 
+
 class NodeContainer(object):
 
     def __init__(self, db_conn):
@@ -67,6 +68,22 @@ class NodeContainer(object):
                                                                                          start_time, end_time)
             self.id_node_map[node_id].voltage_readings = pd.DataFrame.from_records(voltage_readings,
                                                                                    index=['Timestamp'])
+
+    def get_hourly_events_for_all_nodes_grouped_by_day(self):
+        """
+        :return: dict of node_id : {datetime.date : hourly_events_list}
+        """
+        hourly_events_per_node_per_day = {}
+        for id, node in self.id_node_map.iteritems():
+            grouped = node.get_measurements_grouped_by_day()
+            daily_events = {}
+            for label, day_group in grouped:
+                num_of_events_by_hour = day_group.groupby(pd.TimeGrouper(freq='H')).size()
+                hourly_event_counts = [(key.to_datetime().hour, val) for key, val in num_of_events_by_hour.iteritems()]
+                day = label.to_datetime().date()
+                daily_events[day] = hourly_event_counts
+                hourly_events_per_node_per_day[id] = daily_events
+        return hourly_events_per_node_per_day
 
     def calc_traffic_between_nodes(self, source_node, sink_node, offset_lowbound, offset_upbound, sensor_cooldown):
         # offset_lowbound = excpected shortest time in seconds that it takes to walk between nodes
@@ -88,7 +105,6 @@ class NodeContainer(object):
                 # Sensor is on cooldown state, skip to next simestramp
                 cooldown_counter = cooldown_counter - 1
                 continue
-
 
             start_time = timestamp + pd.DateOffset(seconds=offset_lowbound)
             end_time = timestamp + pd.DateOffset(seconds=offset_upbound)
@@ -114,23 +130,6 @@ class NodeContainer(object):
         #print(grouped_by_hour)
         #print("\n")
         #return traffic_ctr
-
-    def get_hourly_events_for_all_nodes_grouped_by_day(self):
-        """
-        :return: dict of node_id : {datetime.date : hourly_events_list}
-        """
-        hourly_events_per_node_per_day = {}
-        for id, node in self.id_node_map.iteritems():
-            grouped = node.get_measurements_grouped_by_day()
-            daily_events = {}
-            for label, day_group in grouped:
-                num_of_events_by_hour = day_group.groupby(pd.TimeGrouper(freq='H')).size()
-                hourly_event_counts = [(key.to_datetime().hour, val) for key, val in num_of_events_by_hour.iteritems()]
-                day = label.to_datetime().date()
-                daily_events[day] = hourly_event_counts
-                hourly_events_per_node_per_day[id] = daily_events
-        return hourly_events_per_node_per_day
-
 
     def format_traffic_events(self, traffic_events, source_node, sink_node):
 
@@ -165,7 +164,6 @@ class NodeContainer(object):
                       [250, 257]
                       ]
 
-
         pair_container = {}
 
         counter = 0
@@ -184,6 +182,25 @@ class NodeContainer(object):
 
         return pair_container
 
+
+    def calculate_energy_savings_for_day(self, day):
+        energy_savings_dict = {}
+        for node_id in xrange(1, 36): #nodes 1-35 have cyclecounts
+            #print ("Processing node:", str(node_id))
+            time_morning = "%s 06:00:00" % day
+            time_evening = "%s 18:00:00" % day
+            cycle_readings = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.CYCLE_COUNT, time_morning, time_evening)
+            if not cycle_readings:
+                energy_savings_dict[node_id] = 100
+            else:
+                cycle_readings_df = pd.DataFrame.from_records(cycle_readings, index=['Timestamp'], exclude=['Measurement'])
+                energy_savings_dict[node_id] = (43200 - (cycle_readings_df.iloc[-1] - cycle_readings_df.iloc[0])) / 432 # in percents
+        energy_savings = pd.DataFrame.from_dict(energy_savings_dict, orient='index')
+        print(energy_savings)
+        if float(energy_savings.mean() <= 100):
+            return float(energy_savings.mean())
+        else:
+            return 100
 
 
 class NodeEnergy(object):
@@ -209,7 +226,6 @@ def main(start_time, end_time):
             node_ids.add(row.node_id)
             container.id_node_map[row.node_id] = Node(row.node_id, row.location)
 
-
     container.put_temp_events_to_all_nodes(start_time, end_time)
 
     pp = pprint.PrettyPrinter(indent=4)
@@ -228,69 +244,12 @@ def main(start_time, end_time):
             node_energy_ids.add(row.node_id)
             nodes_energy[row.node_id] = NodeEnergy(row.location)
     # Calculate energy savings for one day
-    print(calculate_energy_savings_for_day(db, "2016-01-25"))
+    container.calculate_energy_savings_for_day("2016-01-25")
 
-    # Fetch data to nodes
-
-    #for node_id in [250, 257, 259, 254, 253, 251, 252, 256, 258]:
-    #    print ("Processing node:", str(node_id))
-    #    temperature_readings = db.get_node_temperatures_by_node_id(node_id)
-    #    nodes[node_id].temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
-
-        #print (nodes[node_id].temp_readings.tail())
-
-
-    # Uncomment next line to unleash true power of calculatin and printing all traffict at vvt builgin on neighbour nodes
-
-
+    # Uncomment next line to unleash true power of calculating and printing all traffic at vvt building on neighbour nodes
     traffic_events_hourly = container.get_traffic_on_neighbour_nodes_at_vtt()
     pp.pprint(traffic_events_hourly)
 
-    makeHeatmap(nodes)
-
-
-
-    #source_node_df = nodes[251].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
-    #sink_node_df = nodes[252].get_temperatures_by_time_window(datetime(2016, 1, 15), datetime(2016, 1, 16))
-    #print("From node 251 to node 252")
-    #calc_traffic_between_nodes(source_node_df, sink_node_df, 15)
-    #print("From node 252 to node 251")
-    #calc_traffic_between_nodes(sink_node_df, source_node_df, 15)
-
-    # This is my jam brah
-    #testLocation = {'x': 1337, 'y': 1337}
-    #newTestNode = Node(testLocation)
-
-    #temperature_readings = db.get_node_temperatures_by_node_id(250)
-    #newTestNode.temp_readings = pd.DataFrame.from_records(temperature_readings, index=['Timestamp'], exclude=['Measurement'])
-
-    # print(newTestNode.temp_readings)
-    # print(newTestNode.get_temperatures_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
-    # print(newTestNode.get_measurement_count_by_time_window('2016-01-01 00:00:00','2016-01-10 12:00:00'))
-    # print(newTestNode.get_measurements_count_by_day())
-    # print(newTestNode.get_measurements_count_by_hour())
-    # print(newTestNode.get_measurements_count_by_15_min())
-    # print(newTestNode.get_measurements_count_by_minute())
-
-
-def calculate_energy_savings_for_day(database, day):
-    energy_savings_dict = {}
-    for node_id in range(1, 36): #nodes 1-35 have cyclecounts
-        #print ("Processing node:", str(node_id))
-        time_morning = "%s 06:00:00" % day
-        time_evening = "%s 18:00:00" % day
-        cycle_readings = database.get_node_events_of_type_by_node_id_by_time_window(node_id, 6, time_morning, time_evening)
-        if cycle_readings == []:
-            energy_savings_dict[node_id] = 100
-        else:
-            cycle_readings_df = pd.DataFrame.from_records(cycle_readings, index=['Timestamp'], exclude=['Measurement'])
-            energy_savings_dict[node_id] = (43200 - (cycle_readings_df.iloc[-1] - cycle_readings_df.iloc[0])) / 432  # in percents
-    energy_savings = pd.DataFrame.from_dict(energy_savings_dict, orient='index')
-    #print(energy_savings)
-    if float(energy_savings.mean() <= 100):
-        return float(energy_savings.mean())
-    else:
-        return 100
 
 if __name__ == "__main__":
     start = datetime(2016, 1, 25)
