@@ -90,3 +90,5 @@ ENV/
 
 # Application configuration file
 *config.py
+
+.idea/
