@@ -31,7 +31,7 @@ def create(nodes, heatdata, traffic_data):
 
     # Gradientify palette
     for i in range(len(palette)):
-        palette[i][3] = (float(i) / len(palette)) * 255
+        palette[i][3] = (float(i) / len(palette)) ** 0.5 * 255
 
     # Draw Different layers of visualization
     print 'Draw different map visualization layers'

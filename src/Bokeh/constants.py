@@ -1,0 +1,17 @@
+# General
+MAP_RESOLUTION = (1527, 206)
+
+
+# Heatmap
+HEATMAP_CUTOFF = 128.0 # Make this float or face rounding errors
+
+HEATMAP_BRUSH_SIZE = 25
+HEATMAP_RESOLUTION = (150, 20)
+
+
+# Network
+ARROW_MAX_COLOR = 11
+
+ARROW_MIN_SIZE = 5
+ARROW_MAX_SIZE = 50
+ARROW_SIZE_SCALE_FACTOR = 0.8

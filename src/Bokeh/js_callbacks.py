@@ -12,28 +12,24 @@ updateHour = """
         heat_source.data.image = heat_source.data['image' + postfix];
         heat_source.trigger('change');
     }
-    else {
-        heat_source.data.image = heat_source.data.image_empty;
-        heat_source.trigger('change');
-    }
 
     // Update network if it is active
     if (state.data.active.indexOf(2) > -1) {
         console.log('Updating arrow network');
-        arrow_source.data.x_shown = arrow_source.data['x' + postfix];
-        arrow_source.data.y_shown = arrow_source.data['y' + postfix];
-        arrow_source.data.size_shown = arrow_source.data['size' + postfix];
-        arrow_source.data.color_shown = arrow_source.data['color' + postfix];
-        arrow_source.data.alpha_shown = arrow_source.data['alpha' + postfix];
-        arrow_source.trigger('change');
-    }
-    else {
-        arrow_source.data.x_shown = [];
-        arrow_source.data.y_shown = [];
-        arrow_source.data.size_shown = [];
-        arrow_source.data.color_shown = [];
-        arrow_source.data.alpha_shown = [];
-        arrow_source.trigger('change');
+        try {
+            arrow_source.data.x_shown = arrow_source.data['x' + postfix];
+            arrow_source.data.y_shown = arrow_source.data['y' + postfix];
+            arrow_source.data.color_shown = arrow_source.data['color' + postfix];
+            arrow_source.data.alpha_shown = arrow_source.data['alpha' + postfix];
+            arrow_source.trigger('change');
+        }
+        catch (err) {
+            arrow_source.data.x_shown = [];
+            arrow_source.data.y_shown = [];
+            arrow_source.data.color_shown = [];
+            arrow_source.data.alpha_shown = [];
+            arrow_source.trigger('change');
+        }
     }
 """
 
@@ -52,28 +48,24 @@ updateDay = """
         heat_source.data.image = heat_source.data['image' + postfix];
         heat_source.trigger('change');
     }
-    else {
-        heat_source.data.image = heat_source.data.image_empty;
-        heat_source.trigger('change');
-    }
 
     // Update network if it is active
     if (state.data.active.indexOf(2) > -1) {
         console.log('Updating arrow network');
-        arrow_source.data.x_shown = arrow_source.data['x' + postfix];
-        arrow_source.data.y_shown = arrow_source.data['y' + postfix];
-        arrow_source.data.size_shown = arrow_source.data['size' + postfix];
-        arrow_source.data.color_shown = arrow_source.data['color' + postfix];
-        arrow_source.data.alpha_shown = arrow_source.data['alpha' + postfix];
-        arrow_source.trigger('change');
-    }
-    else {
-        arrow_source.data.x_shown = [];
-        arrow_source.data.y_shown = [];
-        arrow_source.data.size_shown = [];
-        arrow_source.data.color_shown = [];
-        arrow_source.data.alpha_shown = [];
-        arrow_source.trigger('change');
+        try {
+            arrow_source.data.x_shown = arrow_source.data['x' + postfix];
+            arrow_source.data.y_shown = arrow_source.data['y' + postfix];
+            arrow_source.data.color_shown = arrow_source.data['color' + postfix];
+            arrow_source.data.alpha_shown = arrow_source.data['alpha' + postfix];
+            arrow_source.trigger('change');
+        }
+        catch (err) {
+            arrow_source.data.x_shown = [];
+            arrow_source.data.y_shown = [];
+            arrow_source.data.color_shown = [];
+            arrow_source.data.alpha_shown = [];
+            arrow_source.trigger('change');
+        }
     }
 """
 
@@ -106,7 +98,6 @@ updateToggles = """
     if (state.data.active.indexOf(2) > -1) {
         arrow_source.data.x_shown = arrow_source.data['x' + postfix];
         arrow_source.data.y_shown = arrow_source.data['y' + postfix];
-        arrow_source.data.size_shown = arrow_source.data['size' + postfix];
         arrow_source.data.color_shown = arrow_source.data['color' + postfix];
         arrow_source.data.alpha_shown = arrow_source.data['alpha' + postfix];
         arrow_source.trigger('change');

@@ -1,24 +1,26 @@
 from bokeh.models import LabelSet, HoverTool
 from bokeh.plotting import figure
-
+import constants
 
 def createCoreFigure(bg_path):
+    border = 20
+
     fig = figure(
         tools=[],#"xpan", _createHoverTool()],
-        width=1527 + 40, height=206 + 40,
-        x_range=(0, 1527), y_range=(0, 206),
-        min_border=20, toolbar_location=None)
+        width=constants.MAP_RESOLUTION[0] + 2 * border, height=constants.MAP_RESOLUTION[1] + 2 * border,
+        x_range=(0, constants.MAP_RESOLUTION[0]), y_range=(0, constants.MAP_RESOLUTION[1]),
+        min_border=border, toolbar_location=None)
     fig.axis.visible = False
     fig.xgrid.grid_line_color = None
     fig.ygrid.grid_line_color = None
 
     # Draw image on background
-    fig.image_url(url=[bg_path], x=0, y=206, w=1527, h=207)
+    fig.image_url(url=[bg_path], x=0, y=constants.MAP_RESOLUTION[1], w=constants.MAP_RESOLUTION[0], h=constants.MAP_RESOLUTION[1] + 1)
     return fig
 
 
 def drawOnFigure(fig, source, nodes):
-    populateNodeSource(source, nodes, 206)
+    populateNodeSource(source, nodes, constants.MAP_RESOLUTION[1])
     drawNodes(fig, source, True)
 
 

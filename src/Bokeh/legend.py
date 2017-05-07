@@ -6,6 +6,7 @@ from bokeh.palettes import Inferno256
 from bokeh.plotting import figure, show, ColumnDataSource
 
 from helpers import hexPaletteToTuplePalette
+import constants
 
 def createLegend(palette, width, height):
     # Draw scale
@@ -26,7 +27,7 @@ def createLegend(palette, width, height):
     for i in range(label_count):
         label_data['x'].append(40)
         label_data['y'].append((float(i) / (label_count - 1)) * 360 + 10)
-        label_data['value'].append((float(i) / (label_count - 1)) * 256)
+        label_data['value'].append((float(i) / (label_count - 1)) * constants.HEATMAP_CUTOFF)
 
     source = ColumnDataSource(data=label_data)
     labels = LabelSet(x='x', y='y', text='value', level='glyph',

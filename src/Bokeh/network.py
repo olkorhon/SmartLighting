@@ -1,8 +1,8 @@
-from bokeh.palettes import linear_palette, Inferno256
+from bokeh.palettes import linear_palette, RdBu
 from bokeh.models.glyphs import Patches
 from example_data import generateExampleNetworkData
 from shapes import lineToArrow
-
+import constants
 
 def drawOnFigure(fig, source, raw_data, nodes, xs, ys, vs, cs, aS):
     # Load example data
@@ -20,7 +20,7 @@ def drawOnFigure(fig, source, raw_data, nodes, xs, ys, vs, cs, aS):
     glyph = Patches(xs=xs+"_shown", ys=ys+"_shown", fill_color=cs+"_shown", fill_alpha=aS+"_shown", line_width=0)
     fig.add_glyph(source, glyph)
 
-def readData(raw_data, nodes, xs, ys, vs, cs, aS, palette=linear_palette(Inferno256, 12)):
+def readData(raw_data, nodes, xs, ys, vs, cs, aS, palette=RdBu[11]):
     edited_data = {}
 
     for key in raw_data:
@@ -54,18 +54,25 @@ def readData(raw_data, nodes, xs, ys, vs, cs, aS, palette=linear_palette(Inferno
                 if a_path not in edited_data:
                     edited_data[a_path] = []
 
-                size = value_pair[1]
-                if size < 5:
-                    size = 5
+                # Scale arrow size
+                size = value_pair[1] * constants.ARROW_SIZE_SCALE_FACTOR
+                if size < constants.ARROW_MIN_SIZE:
+                    size = constants.ARROW_MIN_SIZE
+                if size > constants.ARROW_MAX_SIZE:
+                    size = constants.ARROW_MAX_SIZE
 
                 # Finally convert to arrow
-                points_x, points_y = lineToArrow((start.pos_x, end.pos_x), (207 - start.pos_y, 207 - end.pos_y), size)
+                points_x, points_y = lineToArrow(
+                    (start.pos_x, end.pos_x),
+                    (constants.MAP_RESOLUTION[1] - start.pos_y, constants.MAP_RESOLUTION[1] - end.pos_y),
+                    size)
                 edited_data[x_path].append(points_x)
                 edited_data[y_path].append(points_y)
                 edited_data[a_path].append(0.8)
+
                 # Color could easily overflow, cap at 12
-                if (size > 12):  # TODO do not use magick numbers as ceilings
-                    edited_data[c_path].append(palette[11])
+                if (value_pair[1] > constants.ARROW_MAX_COLOR):  # TODO do not use magick numbers as ceilings
+                    edited_data[c_path].append(palette[constants.ARROW_MAX_COLOR - 1])
                 else:
                     edited_data[c_path].append(palette[value_pair[1] - 1])
 
