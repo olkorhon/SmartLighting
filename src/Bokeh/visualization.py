@@ -9,7 +9,7 @@ from bokeh.palettes import Inferno256
 from js_callbacks import updateHour, updateDay, updateToggles
 import core, heatmap, network, legend, helpers, energy_save
 
-def create(nodes, heatdata):
+def create(nodes, heatdata, traffic_data):
     print "Data received"
     output_file("visuals.html")
 
@@ -20,6 +20,7 @@ def create(nodes, heatdata):
     heat_source = ColumnDataSource(data=dict())
     arrow_source = ColumnDataSource()
     energy_source = ColumnDataSource(data=dict())
+    divider_source = ColumnDataSource(data=dict())
 
     # Create base for all
     fig = core.createCoreFigure('map.png')
@@ -39,21 +40,22 @@ def create(nodes, heatdata):
     print '  Heatmap...'
     heatmap.drawOnFigure(fig, heat_source, heatdata, nodes, palette)
     print '  Network...'
-    network.drawOnFigure(fig, arrow_source, nodes, "x", "y", "size", "color", "alpha")
+    network.drawOnFigure(fig, arrow_source, traffic_data, nodes, "x", "y", "size", "color", "alpha")
     print '  Nodes...'
     core.drawNodes(fig, node_source, True)
 
     print '\nDraw Energy save graph'
-    energy_fig = energy_save.createEnergySaveGraph(300, 240)
+    energy_fig = energy_save.createEnergySaveGraph(600, 240)
     energy_save.setData(energy_fig, energy_source, 'hours', 'savings')
+    energy_save.setDivider(energy_fig, divider_source)
 
     # Define user interface
     toggle_callback = CustomJS(args=dict(state=state_source, node_source=node_source, heat_source=heat_source, arrow_source=arrow_source), code=updateToggles)
     toggles = CheckboxGroup(labels=["Nodes", "Heatmap", "Arrows"], active=state_source.data['active'], callback=toggle_callback)
 
     # Create slider and give it the defined inner function callback
-    hour_callback = CustomJS(args=dict(heat_source=heat_source, energy_source=energy_source, arrow_source=arrow_source, state=state_source), code=updateHour)
-    hour_slider = Slider(start=1, end=24, value=1, step=1, title="hour", callback=hour_callback)
+    hour_callback = CustomJS(args=dict(heat_source=heat_source, divider_source=divider_source, arrow_source=arrow_source, state=state_source), code=updateHour)
+    hour_slider = Slider(start=0, end=23, value=1, step=1, title="hour", callback=hour_callback)
 
     # Create date slider and give it the defined inner function callback
     day_callback = CustomJS(args=dict(heat_source=heat_source, energy_source=energy_source, arrow_source=arrow_source, state=state_source), code=updateDay)

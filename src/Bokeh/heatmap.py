@@ -41,7 +41,7 @@ def populateImagesSourceWithData(image_data, nodes, data, template_base, brush, 
     print "    Reserving memory for heatmaps"
     for date in range(25, 32): #TODO No hardcoding!
         for h in range(24):
-            image_path = "image_" + str(h + 1) + str(date)
+            image_path = "image_" + str(h) + str(date)
             image_data[image_path] = np.copy(template_base)
 
     # Paint data to heatmaps

@@ -1,32 +1,39 @@
 # Size should be normalized
-def lineToArrow(data, i, xs, ys, vs):
+def lineToArrow(points_x, points_y, size):
     # Calculate delta vector
-    delta_x = data[xs][i][1] - data[xs][i][0]
-    delta_y = data[ys][i][1] - data[ys][i][0]
+    delta_x = points_x[1] - points_x[0]
+    delta_y = points_y[1] - points_y[0]
 
     length = (delta_x ** 2 + delta_y ** 2) ** 0.5
 
     # Normalize delta vector
-    delta_x = delta_x * data[vs][i] / length
-    delta_y = delta_y * data[vs][i] / length
+    delta_x = delta_x * size / length
+    delta_y = delta_y * size / length
 
     # Determine tangent vector for delta vector
     tangent_x = delta_y
     tangent_y = -delta_x
 
-    # Add extra points
-    data[xs][i].append(data[xs][i][1] - tangent_x - delta_x * 2)
-    data[xs][i].append(data[xs][i][1] + tangent_x / 2 + delta_x * 1.5 - delta_x * 2)
-    data[xs][i].append(data[xs][i][1] + tangent_x * 2 - delta_x * 2)
-    data[xs][i].append(data[xs][i][1] + tangent_x - delta_x * 2)
-    data[xs][i].append(data[xs][i][0] + tangent_x + delta_x / data[vs][i] * 40)
-    data[xs][i][1] -= delta_x * 2
-    data[xs][i][0] += delta_x / data[vs][i] * 40
+    arrow_x = []
+    arrow_y = []
 
-    data[ys][i].append(data[ys][i][1] - tangent_y - delta_y * 2)
-    data[ys][i].append(data[ys][i][1] + tangent_y / 2 + delta_y * 1.5 - delta_y * 2)
-    data[ys][i].append(data[ys][i][1] + tangent_y * 2 - delta_y * 2)
-    data[ys][i].append(data[ys][i][1] + tangent_y - delta_y * 2)
-    data[ys][i].append(data[ys][i][0] + tangent_y + delta_y / data[vs][i] * 40)
-    data[ys][i][1] -= delta_y * 2
-    data[ys][i][0] += delta_y / data[vs][i] * 40
+    # Add extra points
+    arrow_x.append(points_x[0] + delta_x / size * 40)
+    arrow_x.append(points_x[1] - delta_x * 2)
+    arrow_x.append(points_x[1] - tangent_x - delta_x * 2)
+    arrow_x.append(points_x[1] + tangent_x / 2 + delta_x * 1.5 - delta_x * 2)
+    arrow_x.append(points_x[1] + tangent_x * 2 - delta_x * 2)
+    arrow_x.append(points_x[1] + tangent_x - delta_x * 2)
+    arrow_x.append(points_x[0] + tangent_x + delta_x / size * 40)
+
+    arrow_y.append(points_y[0] + delta_y / size * 40)
+    arrow_y.append(points_y[1] - delta_y * 2)
+    arrow_y.append(points_y[1] - tangent_y - delta_y * 2)
+    arrow_y.append(points_y[1] + tangent_y / 2 + delta_y * 1.5 - delta_y * 2)
+    arrow_y.append(points_y[1] + tangent_y * 2 - delta_y * 2)
+    arrow_y.append(points_y[1] + tangent_y - delta_y * 2)
+    arrow_y.append(points_y[0] + tangent_y + delta_y / size * 40)
+
+    return (arrow_x, arrow_y)
+
+

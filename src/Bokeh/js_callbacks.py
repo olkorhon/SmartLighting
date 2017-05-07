@@ -4,8 +4,9 @@ updateHour = """
 
      // Always update energy savings
     var postfix = '_' + state.data.hour[0] + state.data.day[0]
-    energy_source.data.savings_shown = energy_source.data['savings' + postfix];
-    energy_source.trigger('change');
+    divider_source.data.div_x[0] = state.data.hour[0];
+    divider_source.data.div_x[1] = state.data.hour[0];
+    divider_source.trigger('change');
 
     if (state.data.active.indexOf(1) > -1) {
         heat_source.data.image = heat_source.data['image' + postfix];
