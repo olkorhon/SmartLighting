@@ -61,10 +61,3 @@ def drawNodes(fig, source, draw_labels):
                           text_font_style="bold", text_color="black", text_font_size='10pt',
                           background_fill_color="White", background_fill_alpha=0.5)
         fig.add_layout(labels)
-
-
-# Returns a hovertool for nodes
-#def _createHoverTool():
-#    return HoverTool(tooltips=[
-#        ("node", "@id"),
-#        ("location", "(@x, @y)")])

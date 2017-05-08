@@ -1,58 +1,59 @@
 from bokeh.palettes import linear_palette, RdBu
 from bokeh.models.glyphs import Patches
-from example_data import generateExampleNetworkData
 from shapes import lineToArrow
+
+from helpers import ensureDictionaryHasHolders
 import constants
 
-def drawOnFigure(fig, source, raw_data, nodes, xs, ys, vs, cs, aS):
-    # Load example data
-    data = readData(raw_data, nodes, xs, ys, vs, cs, aS)
 
-    data[xs + '_shown'] = []
-    data[ys + '_shown'] = []
-    data[vs + '_shown'] = []
-    data[cs + '_shown'] = []
-    data[aS + '_shown'] = []
+def drawOnFigure(fig, source, raw_data, nodes, data_format):
+    # Load example data
+    data = readData(raw_data, nodes, data_format)
+
+    data[data_format['xs'] + '_shown'] = []
+    data[data_format['ys'] + '_shown'] = []
+    data[data_format['vs'] + '_shown'] = []
+    data[data_format['cs'] + '_shown'] = []
+    data[data_format['as'] + '_shown'] = []
 
     source.data = data
 
     # Plot patches to figure
-    glyph = Patches(xs=xs+"_shown", ys=ys+"_shown", fill_color=cs+"_shown", fill_alpha=aS+"_shown", line_width=0)
+    glyph = Patches(
+        xs=data_format['xs'] + "_shown",
+        ys=data_format['ys'] + "_shown",
+        fill_color=data_format['cs'] + "_shown",
+        fill_alpha=data_format['as'] + "_shown",
+        line_width=0,
+        line_color=None)
+
+    # Add patch glyph to figure
     fig.add_glyph(source, glyph)
 
-def readData(raw_data, nodes, xs, ys, vs, cs, aS, palette=RdBu[11]):
+
+def readData(raw_data, nodes, data_format, palette=RdBu[11]):
     edited_data = {}
 
-    for key in raw_data:
-        link = raw_data[key]
+    for key, link in raw_data.iteritems():
         start = nodes[link['from_node_id']]
         end = nodes[link['to_node_id']]
 
-        for date in link['events']:
-            for value_pair in link['events'][date]:
+        for date, event_collection in link['events'].iteritems():
+            for value_pair in event_collection:
                 # Skip if this is not a value
                 if value_pair[1] == 0:
                     continue
 
                 # Determine date coded keys for arrays
                 postfix = '_' + str(value_pair[0]) + str(date.day)
-                x_path = xs + postfix
-                y_path = ys + postfix
-                v_path = vs + postfix
-                c_path = cs + postfix
-                a_path = aS + postfix
+                x_path = data_format['xs'] + postfix
+                y_path = data_format['ys'] + postfix
+                v_path = data_format['vs'] + postfix
+                c_path = data_format['cs'] + postfix
+                a_path = data_format['as'] + postfix
 
                 # Make sure a holder with this date exists
-                if x_path not in edited_data:
-                    edited_data[x_path] = []
-                if y_path not in edited_data:
-                    edited_data[y_path] = []
-                if v_path not in edited_data:
-                    edited_data[v_path] = []
-                if c_path not in edited_data:
-                    edited_data[c_path] = []
-                if a_path not in edited_data:
-                    edited_data[a_path] = []
+                ensureDictionaryHasHolders(edited_data, x_path, y_path, v_path, c_path, a_path)
 
                 # Scale arrow size
                 size = value_pair[1] * constants.ARROW_SIZE_SCALE_FACTOR

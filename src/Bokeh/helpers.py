@@ -36,3 +36,10 @@ def _hexToDec(hex):
     green = ''.join(hex_split[2:4])
     blue  = ''.join(hex_split[4:6])
     return [int(red, 16), int(green, 16), int(blue,16), 255]
+
+
+# Makes sure dictionary has arrays for provided keys
+def ensureDictionaryHasHolders(data, *keys):
+    for key in keys:
+        if key not in data:
+            data[key] = []

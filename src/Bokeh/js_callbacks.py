@@ -4,13 +4,31 @@ updateHour = """
 
      // Always update energy savings
     var postfix = '_' + state.data.hour[0] + state.data.day[0]
-    divider_source.data.div_x[0] = state.data.hour[0];
-    divider_source.data.div_x[1] = state.data.hour[0];
-    divider_source.trigger('change');
+    try {
+        divider_source.data.div_x[0] = state.data.hour[0] + 0.5;
+        divider_source.trigger('change');
+    }
+    catch(err) {
+        divider_source.data.div_x[0] = -1;
+        divider_source.trigger('change');
+    }
 
     if (state.data.active.indexOf(1) > -1) {
-        heat_source.data.image = heat_source.data['image' + postfix];
-        heat_source.trigger('change');
+        console.log('Updating heatmap');
+        try {
+            heat_source.data.x_shown = heat_source.data['x' + postfix];
+            heat_source.data.y_shown = heat_source.data['y' + postfix];
+            heat_source.data.size_shown = heat_source.data['size' + postfix];
+            heat_source.data.color_shown = heat_source.data['color' + postfix];
+            heat_source.trigger('change');
+        }
+        catch (err) {
+            heat_source.data.x_shown = [];
+            heat_source.data.y_shown = [];
+            heat_source.data.size_shown = [];
+            heat_source.data.color_shown = [];
+            heat_source.trigger('change');
+        }
     }
 
     // Update network if it is active
@@ -38,15 +56,42 @@ updateDay = """
     console.log(state.data.day + ':' + state.data.hour);
 
     // Always update energy savings
-    var postfix = '_' + state.data.hour[0] + state.data.day[0]
-    energy_source.data.savings_shown = energy_source.data['savings' + postfix];
+    try {
+
+
+        energy_source.data.hour_shown = energy_source.data['hour_' + state.data.day[0].toString()];
+        energy_source.data.saving_shown = energy_source.data['saving_' + state.data.day[0].toString()];
+    }
+    catch (err) {
+        energy_source.data.hour_shown = [];
+        energy_source.data.saving_shown = [];
+    }
     energy_source.trigger('change');
 
+    // Calculate new average for energy savings
+    let avg = energy_source.data.saving_shown.reduce((p, c, i) => (p+(c-p)/(i+1)));
+    average_source.data.avg_y[0] = avg;
+    average_source.data.avg_y[1] = avg;
+    average_source.trigger('change');
+
+    var postfix = '_' + state.data.hour[0] + state.data.day[0]
     // Update heatmap if it is active
     if (state.data.active.indexOf(1) > -1) {
         console.log('Updating heatmap');
-        heat_source.data.image = heat_source.data['image' + postfix];
-        heat_source.trigger('change');
+        try {
+            heat_source.data.x_shown = heat_source.data['x' + postfix]
+            heat_source.data.y_shown = heat_source.data['y' + postfix]
+            heat_source.data.size_shown = heat_source.data['size' + postfix]
+            heat_source.data.color_shown = heat_source.data['color' + postfix];
+            heat_source.trigger('change');
+        }
+        catch (err) {
+            heat_source.data.x_shown = [];
+            heat_source.data.y_shown = [];
+            heat_source.data.size_shown = [];
+            heat_source.data.color_shown = [];
+            heat_source.trigger('change');
+        }
     }
 
     // Update network if it is active
@@ -87,11 +132,23 @@ updateToggles = """
     }
 
     if (state.data.active.indexOf(1) > -1) {
-        heat_source.data.image = heat_source.data['image' + postfix];
+        //heat_source.data.image = heat_source.data['image' + postfix];
+
+        heat_source.data.x_shown = heat_source.data['x' + postfix];
+        heat_source.data.y_shown = heat_source.data['y' + postfix];
+        heat_source.data.size_shown = heat_source.data['size' + postfix];
+        heat_source.data.color_shown = heat_source.data['color' + postfix];
+
         heat_source.trigger('change');
     }
     else {
-        heat_source.data.image = heat_source.data.image_empty;
+        //heat_source.data.image = heat_source.data.image_empty;
+
+        heat_source.data.x_shown = [];
+        heat_source.data.y_shown = [];
+        heat_source.data.size_shown = [];
+        heat_source.data.color_shown = [];
+
         heat_source.trigger('change');
     }
 

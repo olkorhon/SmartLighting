@@ -18,7 +18,6 @@ def generateExampleNetworkData(xs, ys, vs, nodes, data=None):
 
     # Define path with node_ids
     example_path = [259, 254, 256, 251, 252, 258, 253, 250, 257]
-    reverse_path = example_path[::-1]
     
      # Make example lines
     last = None
@@ -48,6 +47,7 @@ def generateExampleNetworkData(xs, ys, vs, nodes, data=None):
             points_x.append(nodes[node].pos_x)
             points_y.append(207 - nodes[last].pos_y)
             points_y.append(207 - nodes[node].pos_y)
+
             data[xs].append(points_x)
             data[ys].append(points_y)
             data[vs].append(randint(10, 20))
@@ -55,8 +55,10 @@ def generateExampleNetworkData(xs, ys, vs, nodes, data=None):
 
     return data
 
+
 def generateSavingData():
-    return [randint(-5, 90) for i in range(24)]
+    return [randint(5, 90) for i in range(24)]
+
 
 def generateEventsForNode():
     return randint(0,5)
