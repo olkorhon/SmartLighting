@@ -32,14 +32,16 @@ def populateNodeSource(source, nodes, y_invert_factor=-1):
     # Format node positions to plottable format
     if y_invert_factor >= 0:
         for node_id in nodes:
-            data["id"].append(node_id)
-            data["x"].append(nodes[node_id].pos_x)
-            data["y"].append(y_invert_factor - nodes[node_id].pos_y)
+            if (nodes[node_id].pos_x != None):
+                data["id"].append(node_id)
+                data["x"].append(nodes[node_id].pos_x)
+                data["y"].append(y_invert_factor - nodes[node_id].pos_y)
     else:
         for node_id in nodes:
-            data["id"].append(node_id)
-            data["x"].append(nodes[node_id].pos_x)
-            data["y"].append(nodes[node_id].pos_y)
+            if (nodes[node_id].pos_x != None):
+                data["id"].append(node_id)
+                data["x"].append(nodes[node_id].pos_x)
+                data["y"].append(nodes[node_id].pos_y)
 
     # Nodes are visible by default
     data["x_shown"] = data["x"]
