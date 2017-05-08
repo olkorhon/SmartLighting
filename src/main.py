@@ -15,10 +15,15 @@ import Bokeh.visualization
 
 class Node(object):
 
-    def __init__(self, node_id, location=None, data=None):
+    def __init__(self, node_id, node_type, location=None, data=None):
         self.node_id = node_id
-        self.pos_x = location["x"]
-        self.pos_y = location["y"]
+        self.type = None                # 'PIR' or 'LAMP'
+        if location:
+            self.pos_x = location["x"]
+            self.pos_y = location["y"]
+        else:
+            self.pos_x = None
+            self.pos_y = None
         self.temp_readings = None
         self.humidity_readings = None
         self.cycle_readings = None
@@ -62,10 +67,18 @@ class NodeContainer(object):
                                                                                        start_time, end_time)
             self.id_node_map[node_id].temp_readings = pd.DataFrame.from_records(tempe_readings, index=['Timestamp'])
 
-    def put_voltage_events_to_all_nodes(self, start_time=None, end_time=None):
-        for node_id in self.id_node_map.keys():
-            voltage_readings = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.VOLTAGE,
-                                                                                         start_time, end_time)
+    def put_cycle_count_events_to_node(self, node_id, start_time=None, end_time=None):
+        cycle_counts = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.CYCLE_COUNT,
+                                                                                     start_time, end_time)
+        if cycle_counts:
+            self.id_node_map[node_id].cycle_readings = pd.DataFrame.from_records(cycle_counts,
+                                                                                 index=['Timestamp'],
+                                                                                 exclude=['Measurement'])
+
+    def put_voltage_events_to_node(self, node_id, start_time=None, end_time=None):
+        voltage_readings = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.VOLTAGE,
+                                                                                     start_time, end_time)
+        if voltage_readings:
             self.id_node_map[node_id].voltage_readings = pd.DataFrame.from_records(voltage_readings,
                                                                                    index=['Timestamp'])
 
@@ -74,15 +87,15 @@ class NodeContainer(object):
         :return: dict of node_id : {datetime.date : hourly_events_list}
         """
         hourly_events_per_node_per_day = {}
-        for id, node in self.id_node_map.iteritems():
+        for _id, node in self.id_node_map.iteritems():
             grouped = node.get_measurements_grouped_by_day()
             daily_events = {}
             for label, day_group in grouped:
                 num_of_events_by_hour = day_group.groupby(pd.TimeGrouper(freq='H')).size()
-                hourly_event_counts = [(key.to_datetime().hour, val) for key, val in num_of_events_by_hour.iteritems()]
-                day = label.to_datetime().date()
+                hourly_event_counts = [(key.to_pydatetime().hour, val) for key, val in num_of_events_by_hour.iteritems()]
+                day = label.to_pydatetime().date()
                 daily_events[day] = hourly_event_counts
-                hourly_events_per_node_per_day[id] = daily_events
+                hourly_events_per_node_per_day[_id] = daily_events
         return hourly_events_per_node_per_day
 
     def calc_traffic_between_nodes(self, source_node, sink_node, offset_lowbound, offset_upbound, sensor_cooldown):
@@ -139,9 +152,9 @@ class NodeContainer(object):
         daily_traffic_events = {}
         for label, day_group in traffic_events_by_day:
             num_of_traffic_events_by_hour = day_group.groupby(pd.TimeGrouper(freq='H')).size()
-            hourly_traffic_event_counts = [(key.to_datetime().hour, val) for key, val in
+            hourly_traffic_event_counts = [(key.to_pydatetime().hour, val) for key, val in
                                            num_of_traffic_events_by_hour.iteritems()]
-            day = label.to_datetime().date()
+            day = label.to_pydatetime().date()
             daily_traffic_events[day] = hourly_traffic_event_counts
 
             hourly_events_of_pair_per_day["from_node_id"] = source_node
@@ -182,32 +195,52 @@ class NodeContainer(object):
 
         return pair_container
 
-
-    def calculate_energy_savings_for_day(self, day):
+    def calculate_total_energy_savings_for_day(self, day):
         energy_savings_dict = {}
-        for node_id in xrange(1, 36): #nodes 1-35 have cyclecounts
+        for _id, node in self.id_node_map.iteritems():
             #print ("Processing node:", str(node_id))
-            time_morning = "%s 06:00:00" % day
-            time_evening = "%s 18:00:00" % day
-            cycle_readings = self.db.get_node_events_of_type_by_node_id_by_time_window(node_id, constants.CYCLE_COUNT, time_morning, time_evening)
-            if not cycle_readings:
-                energy_savings_dict[node_id] = 100
-            else:
-                cycle_readings_df = pd.DataFrame.from_records(cycle_readings, index=['Timestamp'], exclude=['Measurement'])
-                energy_savings_dict[node_id] = (43200 - (cycle_readings_df.iloc[-1] - cycle_readings_df.iloc[0])) / 432 # in percents
+            time_morning = datetime(day.year, day.month, day.day, 6, 0, 0)
+            time_evening = datetime(day.year, day.month, day.day, 18, 0, 0)
+            cycle_readings = node.cycle_readings
+            if cycle_readings is not None and not cycle_readings.empty:
+                time_window = cycle_readings[time_morning:time_evening]
+                if not time_window.empty:
+                    energy_savings_dict[_id] = (43200 - (time_window.iloc[-1] - time_window.iloc[0])) / 432 # in percents
         energy_savings = pd.DataFrame.from_dict(energy_savings_dict, orient='index')
-        print(energy_savings)
-        if float(energy_savings.mean() <= 100):
-            return float(energy_savings.mean())
-        else:
-            return 100
+        if not energy_savings.empty:
+            if float(energy_savings.mean() <= 100):
+                return float(energy_savings.mean())
+            else:
+                return 100
+        return None
 
+    def calculate_hourly_energy_savings_for_day(self, date_obj):
+        hourly_savings_dict = {}
+        time_morning = datetime(date_obj.year, date_obj.month, date_obj.day, 6, 0, 0)
+        time_evening = datetime(date_obj.year, date_obj.month, date_obj.day, 18, 0, 0)
+        for _id, node in self.id_node_map.iteritems():
+            if node.cycle_readings is not None and not node.cycle_readings.empty:
+                time_window = node.cycle_readings[time_morning:time_evening]
+                hourly_index = time_window.reindex(pd.date_range(start=time_morning, end=time_evening, freq='H'))
+                hourly_df = time_window.merge(hourly_index, how='outer', left_index=True, right_index=True)
+                hourly_df.drop('Value_y', axis=1, inplace=True)
+                interpolated_df = hourly_df.interpolate(method='time', limit=12, limit_direction='both')
+                hour_values = interpolated_df.loc[pd.date_range(start=time_morning, end=time_evening, freq='H'), 'Value_x']
+                if not time_window.empty:
+                    hourly_savings = self._get_hourly_savings(hour_values.diff()) # dict(hour: savings_percentage)
+                    hourly_savings_dict[_id] = hourly_savings
+        energy_savings = pd.DataFrame.from_dict(hourly_savings_dict).mean(axis=1)
+        if not energy_savings.empty:
+                return [int(percentage) for percentage in energy_savings.tolist()]
+        return None
 
-class NodeEnergy(object):
+    def _get_hourly_savings(self, hourly_cycle_counts):
+        # saving = (3600 - diff) / 36
+        hourly_savings = {}
+        for index, row in hourly_cycle_counts[1:].iteritems():
+            hourly_savings[index.to_pydatetime()] = int((3600 - row) / 36)
+        return hourly_savings
 
-    def __init__(self, location, data=None):
-        self.cycle_readings = None
-        self.all_readings = pd.DataFrame(data, index=['Timestamp'], columns=["Cycle count"])
 
 def main(start_time, end_time):
     # Fix this monstrosity
@@ -221,35 +254,38 @@ def main(start_time, end_time):
 
     # Fill NodeContainer with all the unique Nodes
     node_ids = set()
-    for row in db.get_nodes():
+    for row in db.get_nodes_with_location():
         if row.node_id not in node_ids:
             node_ids.add(row.node_id)
-            container.id_node_map[row.node_id] = Node(row.node_id, row.location)
+            container.id_node_map[row.node_id] = Node(row.node_id, "PIR", row.location)
 
     container.put_temp_events_to_all_nodes(start_time, end_time)
 
     pp = pprint.PrettyPrinter(indent=4)
     events_hourly = container.get_hourly_events_for_all_nodes_grouped_by_day()
-    pp.pprint(events_hourly)
-
-    Bokeh.visualization.create(container.id_node_map, events_hourly)
+    #pp.pprint(events_hourly)
 
     '''
     Fetch unique nodes without locations (for cycle counts)
     '''
-    nodes_energy = {}
     node_energy_ids = set()
     for row in db.get_nodes_without_locations():
         if row.node_id not in node_energy_ids:
             node_energy_ids.add(row.node_id)
-            nodes_energy[row.node_id] = NodeEnergy(row.location)
-    # Calculate energy savings for one day
-    container.calculate_energy_savings_for_day("2016-01-25")
+            container.id_node_map[row.node_id] = Node(row.node_id, "LAMP")
+            container.put_cycle_count_events_to_node(row.node_id, start_time, end_time)
+
+    
+    hourly_energy_savings_per_day = {}
+    for day in pd.date_range(start_time, end_time):
+        savings = container.calculate_hourly_energy_savings_for_day(day.date())
+        hourly_energy_savings_per_day[day.date()] = savings
 
     # Uncomment next line to unleash true power of calculating and printing all traffic at vvt building on neighbour nodes
     traffic_events_hourly = container.get_traffic_on_neighbour_nodes_at_vtt()
-    pp.pprint(traffic_events_hourly)
+    #pp.pprint(traffic_events_hourly)
 
+    Bokeh.visualization.create(container.id_node_map, events_hourly, traffic_events_hourly)
 
 if __name__ == "__main__":
     start = datetime(2016, 1, 25)
