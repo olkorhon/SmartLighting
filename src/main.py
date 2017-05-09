@@ -88,7 +88,6 @@ class NodeContainer(object):
         :return: dict of node_id : {datetime.date : hourly_events_list}
         """
         hourly_events_per_node_per_day = {}
-        print(self.id_node_map)
         for _id, node in self.id_node_map.iteritems():
             grouped = node.get_measurements_grouped_by_day()
             daily_events = {}
@@ -223,7 +222,6 @@ class NodeContainer(object):
         for _id, node in self.id_node_map.iteritems():
             if node.cycle_readings is not None and not node.cycle_readings.empty:
                 time_window = node.cycle_readings[time_morning:time_evening]
-                print(time_window)
                 hourly_index = time_window.reindex(pd.date_range(start=time_morning, end=time_evening, freq='H'))
                 hourly_df = time_window.merge(hourly_index, how='outer', left_index=True, right_index=True)
                 hourly_df.drop('Value_y', axis=1, inplace=True)
