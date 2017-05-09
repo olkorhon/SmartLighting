@@ -286,7 +286,7 @@ def main(start_time, end_time):
     traffic_events_hourly = container.get_traffic_on_neighbour_nodes_at_vtt()
     #pp.pprint(traffic_events_hourly)
 
-    Bokeh.visualization.create(container.id_node_map, events_hourly, traffic_events_hourly, hourly_energy_savings_per_day)
+    Bokeh.visualization.create(container.id_node_map, events_hourly, traffic_events_hourly, hourly_energy_savings_per_day, start_time, end_time)
 
 if __name__ == "__main__":
 
