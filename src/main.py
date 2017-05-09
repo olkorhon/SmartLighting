@@ -1,6 +1,7 @@
 from __future__ import print_function
 
-from datetime import datetime, date
+import argparse
+from datetime import datetime, date, timedelta
 import pprint
 
 import pandas as pd
@@ -87,6 +88,7 @@ class NodeContainer(object):
         :return: dict of node_id : {datetime.date : hourly_events_list}
         """
         hourly_events_per_node_per_day = {}
+        print(self.id_node_map)
         for _id, node in self.id_node_map.iteritems():
             grouped = node.get_measurements_grouped_by_day()
             daily_events = {}
@@ -221,6 +223,7 @@ class NodeContainer(object):
         for _id, node in self.id_node_map.iteritems():
             if node.cycle_readings is not None and not node.cycle_readings.empty:
                 time_window = node.cycle_readings[time_morning:time_evening]
+                print(time_window)
                 hourly_index = time_window.reindex(pd.date_range(start=time_morning, end=time_evening, freq='H'))
                 hourly_df = time_window.merge(hourly_index, how='outer', left_index=True, right_index=True)
                 hourly_df.drop('Value_y', axis=1, inplace=True)
@@ -288,6 +291,33 @@ def main(start_time, end_time):
     Bokeh.visualization.create(container.id_node_map, events_hourly, traffic_events_hourly, hourly_energy_savings_per_day)
 
 if __name__ == "__main__":
-    start = datetime(2016, 1, 25)
-    end = datetime(2016, 1, 31)
+
+    def valid_date(s):
+        try:
+            start_dt = datetime.strptime(s, "%Y-%m-%d")
+            return start_dt
+        except ValueError:
+            msg = "Not a valid date: '{0}'. Date format should be [YYYY-MM-DD].".format(s)
+            raise argparse.ArgumentTypeError(msg)
+
+    def bounds_check(start_dt, end_dt):
+        # check that given date has data in the database
+        start_bound = datetime.strptime(constants.DB_LOWER_DATE_BOUND, "%Y-%m-%d")
+        end_bound = datetime.strptime(constants.DB_UPPER_DATE_BOUND, "%Y-%m-%d")
+        if (start_dt > start_bound and end_dt < end_bound):
+            return
+        else:
+            msg = "Time window has to fit in range [{0}, {1}]".format(constants.DB_LOWER_DATE_BOUND, 
+                                                                      constants.DB_UPPER_DATE_BOUND)
+            raise argparse.ArgumentTypeError(msg)
+
+    parser = argparse.ArgumentParser(description="Analyses and visualizes one week worth of data from LightSense database.\n\
+                                                  Database has data for dates 2014-04-23 - 2016-02-16.")
+    parser.add_argument("startdate", help="The starting date of analysis in format [YYYY-MM-DD].", type=valid_date)
+    args = parser.parse_args()
+    start = args.startdate
+    end = start + timedelta(days=7)
+    bounds_check(start, end)
+    #start = datetime(2016, 1, 25)
+    #end = datetime(2016, 1, 31)
     main(start, end)
