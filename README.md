@@ -1,4 +1,4 @@
-# SmartLightning
+# SmartLighting
 SmartLighting is VTTs project to enhance energy savings and efficiency of lighting in buildings. The system uses passive infrared sensors to turn on lights and sensors in luminaires to track times when lights are on. Every sensor works wirelessly and every event is stored in database for later inspection.
 
 The purpose of this software is to analyze movement at the building’s monitored corridor and calculate the exact energy savings of SmartLighting system.
