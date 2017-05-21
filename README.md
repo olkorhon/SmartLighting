@@ -14,10 +14,10 @@ https://virtualenv.pypa.io/en/stable/
 
 1. make sure you have all the requirements
 2. clone the repository somewhere
-	> git clone https://github.com/olkorhon/SmartLightning.git
+	> git clone https://github.com/olkorhon/SmartLighting.git
 3. navigate to repository folder and install dependencies with pip
 	> pip install -r requirements.txt
-4. setup dbconfig.py which is found in SmartLightning/src/dbconfig.py
+4. modify a config.py file from template file dbconfig.py.TEMPLATE, which is found in SmartLighting/src/dbconfig.py.TEMPLATE
 	> USER: your_postgres_username
 	
 	> PASSW: your_postgres_user_password
